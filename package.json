@@ -1,0 +1,12 @@
+{
+  "name": "portal-pdp",
+  "private": true,
+  "description": "Portal PDP: app móvil y panel web para que los clientes vean su carpeta de protección de datos.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "npm run start --workspace apps/mobile"
+  }
+}

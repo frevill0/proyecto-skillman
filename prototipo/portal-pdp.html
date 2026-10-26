@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Portal PDP Clientes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* Concepto: un prototipo con tres vistas (celular del cliente, panel del administrador, plan). Verde bosque sobre grises verdosos; ocre solo para "pendiente/nuevo". */
+:root{
+  --bg:#EDF1EF; --surface:#FFFFFF; --surface-2:#F4F7F6; --ink:#12201D; --muted:#586A65; --line:#D6DEDB;
+  --brand:#0E5A4F; --brand-ink:#FFFFFF; --brand-soft:#DCEBE7; --accent:#9A6410; --accent-soft:#F6E8CC;
+  --ok:#2A7A4B; --danger:#A93A2E; --frame:#1A2522; --shadow:0 12px 40px rgba(18,32,29,.14);
+  --f-display:'Sora',system-ui,sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0C1412; --surface:#142320; --surface-2:#1A2C28; --ink:#E6EFEC; --muted:#93A8A1; --line:#27393A;
+  --brand:#46B9A2; --brand-ink:#04211C; --brand-soft:#173B35; --accent:#E3B04E; --accent-soft:#3A2D12;
+  --ok:#5CC28A; --danger:#E5857A; --frame:#050A09; --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0C1412; --surface:#142320; --surface-2:#1A2C28; --ink:#E6EFEC; --muted:#93A8A1; --line:#27393A;
+  --brand:#46B9A2; --brand-ink:#04211C; --brand-soft:#173B35; --accent:#E3B04E; --accent-soft:#3A2D12;
+  --ok:#5CC28A; --danger:#E5857A; --frame:#050A09; --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark; }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);
+  padding-block:16px 28px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto}
+
+/* Barra superior */
+.top{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;margin-bottom:20px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:17px;letter-spacing:-.01em}
+.logo{width:30px;height:30px;border-radius:9px;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+.tabs button{border:0;background:transparent;padding:8px 14px;border-radius:9px;font-weight:500;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--brand);color:var(--brand-ink)}
+.badge-demo{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 8px;border-radius:6px}
+
+/* Vista celular */
+.stage{display:grid;grid-template-columns:1fr;gap:28px;align-items:start}
+@media (min-width:880px){.stage{grid-template-columns:minmax(0,1fr) 380px minmax(0,1fr)}}
+.notes{display:flex;flex-direction:column;gap:14px;min-width:0}
+.notes h3{margin:0;font:700 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.notes p{margin:0;color:var(--ink)}
+.note{padding-left:14px;border-left:2px solid var(--line)}
+.note b{font-family:var(--f-display);font-weight:600;display:block;margin-bottom:2px}
+.phone{width:100%;max-width:380px;margin:0 auto;height:min(780px,calc(100dvh - 110px));min-height:600px;border-radius:40px;border:9px solid var(--frame);
+  background:var(--surface);box-shadow:var(--shadow);overflow:hidden;position:relative;display:flex;flex-direction:column}
+@media (max-width:480px){.phone{border-width:0;border-radius:22px;border:1px solid var(--line)}}
+.statusbar{height:26px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font:500 11px var(--f-mono);color:var(--muted)}
+.appbar{flex:none;display:flex;align-items:center;gap:10px;padding:8px 16px 12px;min-height:52px}
+.appbar h2{margin:0;font:600 16px/1.2 var(--f-display);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iconbtn{border:1px solid var(--line);background:var(--surface);width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none}
+.scroll{flex:1;overflow-y:auto;padding:0 16px 20px;min-height:0}
+
+/* Login */
+.login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:14px}
+.login .logo{width:52px;height:52px;border-radius:16px}
+.login h1{font:700 26px/1.1 var(--f-display);margin:8px 0 0;letter-spacing:-.02em}
+.login p{margin:0;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font:500 12px var(--f-mono);color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.field input{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:12px;border-radius:11px;font:inherit}
+.btn{border:0;background:var(--brand);color:var(--brand-ink);padding:12px 16px;border-radius:12px;font-weight:600;display:inline-flex;gap:8px;align-items:center;justify-content:center}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn.small{padding:8px 12px;border-radius:10px;font-size:13px}
+.btn:disabled{opacity:.55;cursor:default}
+.fine{font-size:12px;color:var(--muted)}
+
+/* Inicio */
+.hero{background:var(--brand);color:var(--brand-ink);border-radius:18px;padding:16px;margin-bottom:14px}
+.hero small{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.hero strong{display:block;font:700 19px/1.15 var(--f-display);margin:4px 0 12px}
+.hero .stats{display:flex;gap:18px}
+.hero .stats div{font:600 20px var(--f-display);font-variant-numeric:tabular-nums}
+.hero .stats span{display:block;font:400 11px var(--f-body);opacity:.85}
+.search{width:100%;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:12px;padding:11px 12px;font:inherit;margin-bottom:10px}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:12px;padding:12px 4px;border:0;border-bottom:1px solid var(--line);background:transparent;width:100%;text-align:left}
+.row:last-child{border-bottom:0}
+.num{font:500 12px var(--f-mono);color:var(--brand);background:var(--brand-soft);border-radius:8px;min-width:34px;height:34px;display:grid;place-items:center;flex:none}
+.row .t{flex:1;min-width:0}
+.row .t b{display:block;font-weight:600;overflow-wrap:anywhere}
+.row .t span{font-size:12px;color:var(--muted)}
+.row.empty .t b{color:var(--muted);font-weight:500}
+.chev{color:var(--muted);flex:none}
+.ftype{font:500 10px var(--f-mono);letter-spacing:.04em;border-radius:7px;min-width:38px;height:38px;display:grid;place-items:center;flex:none;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
+.ftype.pdf{color:var(--danger)} .ftype.xlsx{color:var(--ok)} .ftype.docx{color:var(--brand)} .ftype.pptx{color:var(--accent)}
+.new{font:500 10px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;background:var(--accent-soft);color:var(--accent);padding:2px 6px;border-radius:5px;margin-left:6px}
+
+/* Visor */
+.doc{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:18px 16px;position:relative;overflow:hidden;margin-bottom:12px}
+.doc .org{font:500 10px var(--f-mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.doc h3{font:600 15px/1.25 var(--f-display);margin:6px 0 12px}
+.bar{height:7px;border-radius:4px;background:var(--line);margin:8px 0}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin:8px 0}
+.grid i{height:20px;background:var(--line);border-radius:3px}
+.grid i:nth-child(-n+5){background:var(--brand-soft)}
+.boxes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.boxes i{height:46px;border:1.5px dashed var(--line);border-radius:10px}
+.wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font:500 11px var(--f-mono);color:var(--muted);opacity:.28;transform:rotate(-24deg);text-align:center;line-height:1.8}
+.chip{display:inline-flex;gap:6px;align-items:center;font:500 11px var(--f-mono);background:var(--brand-soft);color:var(--brand);padding:4px 8px;border-radius:7px}
+.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+/* Panel admin */
+.admin{display:grid;grid-template-columns:1fr;gap:18px}
+@media (min-width:880px){.admin{grid-template-columns:240px minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;min-width:0}
+.panel h3{margin:0 0 10px;font:700 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.client{display:flex;gap:10px;align-items:center;width:100%;border:0;background:transparent;padding:10px;border-radius:12px;text-align:left}
+.client[aria-current="true"]{background:var(--brand-soft)}
+.client .av{width:34px;height:34px;border-radius:10px;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center;font:600 12px var(--f-display);flex:none}
+.client b{display:block;font-weight:600}
+.client span{font-size:12px;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--surface-2);border-radius:12px;padding:12px}
+.kpi b{display:block;font:700 22px var(--f-display);font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+.subtabs{display:flex;gap:18px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+.subtabs button{border:0;background:transparent;padding:8px 0;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.subtabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--brand)}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl td.n{font-variant-numeric:tabular-nums;color:var(--muted)}
+.tblwrap{overflow-x:auto}
+.switch{position:relative;width:42px;height:24px;border-radius:14px;border:0;background:var(--line);padding:0;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--surface);transition:transform .15s}
+.switch[aria-checked="true"]{background:var(--brand)}
+.switch[aria-checked="true"]::after{transform:translateX(18px);background:var(--brand-ink)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
+.upload{border:1.5px dashed var(--line);border-radius:14px;padding:16px;margin-bottom:14px;background:var(--surface-2)}
+.steps{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.steps li{color:var(--muted)} .steps li.done{color:var(--ink)} .steps li.done::before{content:"✓ ";color:var(--ok)}
+.upload.over{border-color:var(--brand);background:var(--brand-soft)}
+.pbar{height:6px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:10px}
+.pbar i{display:block;height:100%;width:0;background:var(--brand);transition:width .5s}
+.pill{font:500 11px var(--f-mono);padding:3px 8px;border-radius:6px;background:var(--brand-soft);color:var(--brand);white-space:nowrap}
+.pill.warn{background:var(--accent-soft);color:var(--accent)}
+.pill.off{background:var(--surface-2);color:var(--muted)}
+.userrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.userrow .av{width:36px;height:36px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font:600 12px var(--f-display);flex:none}
+.userrow .t{flex:1;min-width:160px}
+.userrow .t b{display:block;font-weight:600}
+.userrow .t span{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.invite{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.invite input{flex:1;min-width:180px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:9px 11px;border-radius:10px;font:inherit}
+.log{list-style:none;margin:0;padding:0}
+.log li{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.log time{font:500 12px var(--f-mono);color:var(--muted);flex:none;min-width:46px}
+.empty-state{padding:28px 12px;text-align:center;color:var(--muted)}
+
+/* Plan */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}
+.card h3{margin:0 0 8px;font:600 16px var(--f-display)}
+.card ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.card.key{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:500;opacity:0;pointer-events:none;transition:.2s;z-index:50;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.prop{display:flex;flex-direction:column;gap:30px;max-width:900px;margin:0 auto}
+.prop section{min-width:0}
+.p-h{margin:0 0 12px;font:700 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.p-hero{background:var(--brand);color:var(--brand-ink);border-radius:22px;padding:28px 24px}
+.p-hero small{font:500 11px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;opacity:.8}
+.p-hero h2{margin:8px 0 10px;font:700 clamp(24px,5vw,36px)/1.1 var(--f-display);letter-spacing:-.02em;text-wrap:balance}
+.p-hero p{margin:0;max-width:56ch;opacity:.92;font-size:16px}
+.p-hero .actions{margin-top:18px}
+.p-hero .btn{background:var(--surface);color:var(--ink)}
+.p-hero .btn.ghost{background:transparent;color:var(--brand-ink);border:1px solid currentColor}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;counter-reset:s}
+.flow li{counter-increment:s;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 16px 16px 58px;position:relative;display:flex;flex-direction:column;gap:4px}
+.flow li::before{content:counter(s);position:absolute;left:16px;top:16px;width:28px;height:28px;border-radius:9px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font:600 14px var(--f-display)}
+.flow li span{color:var(--muted)}
+.devin{width:110px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:7px 9px;border-radius:9px;font:inherit}
+.p-next{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+.prop ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="logo" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span>Portal PDP</div>
+    <div class="tabs" role="tablist" aria-label="Vistas del prototipo">
+      <button role="tab" aria-selected="true" data-view="app">Vista del cliente</button>
+      <button role="tab" aria-selected="false" data-view="admin">Panel del administrador</button>
+      <button role="tab" aria-selected="false" data-view="plan">Propuesta</button>
+    </div>
+    <span class="badge-demo">Prototipo con datos de ejemplo</span>
+  </header>
+
+  <main id="main"></main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  /* ---------- Datos de ejemplo (estructura real de la carpeta del cliente) ---------- */
+  var F=function(n,t,s,d){return {name:n,type:t,size:s,date:d||'8 jul 2026'}};
+  function sec(id,name,files){return {id:id,name:name,visible:true,files:files||[]}}
+  function buildSections(){return [
+    sec('01','Glosario y categorías',[F('Glosario PDP 2021','pdf','0,3 MB','12 jul 2026'),F('Catálogo de categorías de datos','jpg','0,3 MB','12 jul 2026'),F('Catálogo de titulares','jpg','0,2 MB','12 jul 2026'),F('Catálogo de encargados','jpg','0,3 MB','12 jul 2026'),F('Ley Orgánica de Protección de Datos Personales','pdf','7,7 MB','12 jul 2026')]),
+    sec('02','Áreas, contextos y ámbitos',[F('Contextos, ámbitos y áreas','pdf','3,3 MB','8 jul 2026'),F('Ecosistema PDP: autoridad, RTD y DTD','pdf','0,4 MB','8 jul 2026'),F('Visión y GRC','pdf','1,9 MB','8 jul 2026')]),
+    sec('03','Mapeo de PATD y PANSI',[F('PATD + RAT-MTGE','xlsx','0,3 MB','8 jul 2026'),F('Mapeo EET + PANSI','xlsx','2,7 MB','8 jul 2026')]),
+    sec('04','Comunicados y ejercicio de derechos',[F('Anuncio de inicio a encargados de tratamiento','docx','20 KB','8 jul 2026'),F('Anuncio de inicio a socios','docx','23 KB','8 jul 2026')]),
+    sec('05','Contratos y cláusulas',[F('Anexo de tratamiento de datos personales','docx','31 KB','8 jul 2026'),F('Anexo PDP y confidencialidad de empleados','docx','23 KB','8 jul 2026'),F('Contrato de encargo','docx','21 KB','8 jul 2026'),F('Cláusulas entre responsable y titular','docx','28 KB','8 jul 2026')]),
+    sec('06','RAT, finalidad, licitud y MTGE',[F('RAT Cajero financiero','xlsx','67 KB','30 jun 2026'),F('RAT Asesor de crédito','xlsx','70 KB','30 jun 2026'),F('PATD + RAT-MTGE con listas organizadas','xlsx','0,3 MB','30 jun 2026')]),
+    sec('07','Madurez organizacional y estado de la técnica',[F('Inventario de activos','xlsx','0,3 MB','30 jun 2026'),F('Evaluación EET + PANSI','xlsx','2,7 MB','30 jun 2026')]),
+    sec('08','Evaluación de riesgos',[F('Matriz de derechos y libertades: reembolso médico','xlsx','0,4 MB','23 jun 2026'),F('Criterios de ponderación de impacto','jpg','1,0 MB','23 jun 2026'),F('Comparativo enfoque europeo vs. LOPDP','jpg','0,3 MB','23 jun 2026')]),
+    sec('09','Política general PDP',[F('Subpolíticas PDP','docx','0,2 MB','8 jul 2026')]),
+    sec('10','Plan PDP y declaración de aplicabilidad',[F('EIPD Salud ocupacional','xlsx','0,3 MB','19 jun 2026'),F('EIPD Cámaras de videovigilancia','xlsx','0,3 MB','3 jun 2026')]),
+    sec('11','Rutinas PDP y estaciones autogestionadas',[F('Rutinas PDP y gestión de métricas','jpg','0,2 MB','8 jul 2026')]),
+    sec('12','Procedimientos documentados',[F('Procedimiento ARCO','docx','32 KB','27 oct 2025'),F('Protocolo de crisis y resiliencia','docx','31 KB','27 oct 2025'),F('Revocatoria del consentimiento','docx','25 KB','27 oct 2025'),F('Trámites administrativos','docx','31 KB','27 oct 2025'),F('Documento 14: procedimientos documentados','docx','69 KB','8 nov 2023')]),
+    sec('13','Programa de consciencia',[F('Programa de profesionalización del PANSI','pdf','144 KB','3 feb 2026'),F('Examen 1','pdf','129 KB','6 feb 2026'),F('La tríada PDP ecuatoriana','pptx','6,3 MB','13 feb 2026')]),
+    sec('14','Programa de competencias',[F('Programa de profesionalización del PANSI','pdf','144 KB','3 feb 2026'),F('Examen 2','docx','48 KB','12 feb 2026'),F('Curso base LOPDP, módulo 1','pdf','5,5 MB','13 feb 2026')]),
+    sec('15','Programa de auditorías',[]),
+    sec('16','Programa de simulacros',[]),
+    sec('17','Gestión de terceras partes',[]),
+    sec('18','Evaluaciones técnico-jurídicas',[F('EIPD Salud ocupacional: informe','docx','5,9 MB','19 may 2026'),F('EIPD Cámaras: informe','docx','4,0 MB','19 may 2026')]),
+    sec('19','Tablero de mando',[F('Hoshin: nivel de seguridad','xlsx','56 KB','14 dic 2025')]),
+    sec('20','Obligaciones del art. 47 LOPDP',[F('La ruta 47 en PDP','pdf','1,9 MB','27 abr 2026'),F('Documentación útil ante el auditor','xlsx','15 KB','13 jun 2025')]),
+    sec('21','Manual de usuario',[F('Modelo de gestión PDP: manual de usuario','docx','1,0 MB','8 jul 2026')])
+  ]}
+  var S={
+    view:'app', clients:[
+      {id:0,short:'EF',name:'COAC Ecuafuturo',sections:buildSections(),users:[
+        {name:'María Pérez',email:'m.perez@cliente-ejemplo.ec',role:'Oficial de datos',last:'Hoy, 09:12',on:true},
+        {name:'Andrés Salazar',email:'a.salazar@cliente-ejemplo.ec',role:'Gerencia',last:'Ayer, 16:40',on:true},
+        {name:'Lucía Torres',email:'l.torres@cliente-ejemplo.ec',role:'Auditoría interna',last:'18 oct',on:true}]},
+      {id:1,short:'CE',name:'Cliente de ejemplo 2',sections:[],users:[]},
+      {id:2,short:'CE',name:'Cliente de ejemplo 3',sections:[],users:[]}],
+    cur:0, subtab:'folders', uploaded:false,
+    app:{screen:'login',sec:null,file:null,q:''},
+    log:[{t:'09:12',x:'María Pérez abrió «Procedimiento ARCO»'},{t:'09:10',x:'María Pérez inició sesión'},{t:'Ayer',x:'Documentos del cliente actualizados por el administrador'}]
+  };
+  var C=function(){return S.clients[S.cur]};
+  function now(){var d=new Date();return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
+  function addLog(x){S.log.unshift({t:now(),x:x})}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove('show')},2200)}
+  var TYPE={pdf:'PDF',xlsx:'XLS',docx:'DOC',pptx:'PPT',jpg:'IMG',doc:'DOC',xls:'XLS',ppt:'PPT',png:'IMG',jpeg:'IMG',webp:'IMG',gif:'IMG',csv:'CSV',txt:'TXT'};
+  var CHEV='<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>';
+  var BACK='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>';
+  function totalDocs(){return C().sections.reduce(function(a,s){return a+(s.visible?s.files.length:0)},0)}
+  function visibleSecs(){return C().sections.filter(function(s){return s.visible})}
+
+  /* ---------- Vista del cliente (celular) ---------- */
+  function phoneHTML(){
+    var a=S.app,h='';
+    h+='<div class="statusbar"><span>9:41</span><span>●●● 5G</span></div>';
+    if(a.screen==='login'){
+      h+='<div class="login"><span class="logo" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></span>'+
+      '<h1>Tu documentación de protección de datos</h1><p>Acceso solo para clientes autorizados.</p>'+
+      '<div class="field"><label for="em">Correo</label><input id="em" value="m.perez@cliente-ejemplo.ec" autocomplete="off"></div>'+
+      '<div class="field"><label for="pw">Contraseña</label><input id="pw" type="password" value="ejemplo123"></div>'+
+      '<button class="btn" data-a="login">Ingresar</button><p class="fine">Cada cliente ve únicamente sus propias carpetas.</p></div>';
+    } else if(a.screen==='home'){
+      var vs=visibleSecs(),q=a.q.toLowerCase();
+      var list=vs.filter(function(s){return !q||(s.id+' '+s.name).toLowerCase().indexOf(q)>-1});
+      h+='<div class="appbar"><h2>Hola, María</h2><button class="iconbtn" data-a="logout" aria-label="Cerrar sesión"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button></div>';
+      h+='<div class="scroll"><div class="hero"><small>Tu organización</small><strong>'+esc(C().name)+'</strong><div class="stats"><div>'+vs.length+'<span>secciones</span></div><div>'+totalDocs()+'<span>documentos</span></div></div></div>';
+      h+='<input class="search" id="q" placeholder="Buscar sección" value="'+esc(a.q)+'" aria-label="Buscar sección">';
+      h+='<ul class="list">'+list.map(function(s){var n=s.files.length;
+        return '<li><button class="row'+(n?'':' empty')+'" data-a="sec" data-i="'+s.id+'"><span class="num">'+s.id+'</span><span class="t"><b>'+esc(s.name)+'</b><span>'+(n?n+(n===1?' documento':' documentos'):'Sin documentos aún')+'</span></span>'+CHEV+'</button></li>'}).join('')+'</ul>';
+      if(!list.length)h+='<p class="empty-state">'+(vs.length?'No hay secciones con ese nombre.':'Esta organización aún no tiene carpetas publicadas.')+'</p>';
+      h+='</div>';
+    } else if(a.screen==='section'){
+      var s=C().sections.filter(function(x){return x.id===a.sec})[0];
+      h+='<div class="appbar"><button class="iconbtn" data-a="back" aria-label="Volver">'+BACK+'</button><h2>'+s.id+' · '+esc(s.name)+'</h2></div><div class="scroll">';
+      if(!s.files.length)h+='<p class="empty-state">Aún no hay documentos en esta sección.<br>Te avisaremos cuando se publique algo nuevo.</p>';
+      else h+='<ul class="list">'+s.files.map(function(f,i){return '<li><button class="row" data-a="file" data-i="'+i+'"><span class="ftype '+esc(f.type)+'">'+esc(TYPE[f.type]||f.type.toUpperCase().slice(0,3))+'</span><span class="t"><b>'+esc(f.name)+(f.isNew?'<span class="new">Nuevo</span>':'')+'</b><span>'+f.size+' · '+f.date+(f.sub?' · '+esc(f.sub):'')+'</span></span>'+CHEV+'</button></li>'}).join('')+'</ul>';
+      h+='</div>';
+    } else {
+      var s2=C().sections.filter(function(x){return x.id===a.sec})[0],f=s2.files[a.file],body='';
+      var seed=0;for(var i=0;i<f.name.length;i++)seed+=f.name.charCodeAt(i);
+      if(f.url)body='<img src="'+f.url+'" alt="Vista previa de '+esc(f.name)+'" style="width:100%;border-radius:8px;display:block">';
+      else if(/^xlsx?$/.test(f.type))body='<div class="grid">'+new Array(35).join('<i></i>')+'<i></i></div><div class="bar" style="width:70%"></div>';
+      else if(/^(jpe?g|png|gif|webp)$/.test(f.type))body='<div class="boxes"><i></i><i></i><i></i><i></i></div><div class="bar" style="width:60%"></div>';
+      else for(var k=0;k<9;k++)body+='<div class="bar" style="width:'+(55+((seed*(k+3))%45))+'%"></div>';
+      h+='<div class="appbar"><button class="iconbtn" data-a="back" aria-label="Volver">'+BACK+'</button><h2>'+esc(f.name)+'</h2></div><div class="scroll">'+
+      '<div class="doc"><div class="org">'+esc(C().name)+' · Sección '+s2.id+'</div><h3>'+esc(f.name)+'</h3>'+body+
+      '<div class="wm">m.perez@cliente-ejemplo.ec<br>Uso confidencial</div></div>'+
+      '<span class="chip">Página 1 de '+(3+seed%14)+'</span> '+(/^(docx?|xlsx?|pptx?)$/.test(f.type)?'<span class="chip">Convertido a PDF automáticamente</span>':'')+
+      '<div class="actions"><button class="btn small" data-a="dl">Descargar</button><button class="btn small ghost" data-a="back">Volver a la lista</button></div>'+
+      '<p class="fine" style="margin-top:12px">Los documentos llevan una marca de agua con tu correo. Cada apertura queda registrada.</p></div>';
+    }
+    return h;
+  }
+  function renderApp(){
+    var main=document.getElementById('main');
+    main.innerHTML='<div class="stage"><div class="notes"><h3>Lo que ve el cliente</h3>'+
+      '<div class="note"><b>Entra con su correo</b><p>Cada cliente tiene su propio acceso. Solo ve las carpetas de su organización.</p></div>'+
+      '<div class="note"><b>Misma estructura de siempre</b><p>Las 21 secciones de la carpeta que ya usa tu papá, con números y nombres.</p></div></div>'+
+      '<div class="phone" id="phone">'+phoneHTML()+'</div>'+
+      '<div class="notes"><h3>Pruébalo</h3>'+
+      '<div class="note"><b>Toca una sección</b><p>Abre «12 Procedimientos documentados» y luego cualquier archivo.</p></div>'+
+      '<div class="note"><b>Cambia algo en el panel</b><p>Oculta una sección en «Panel del administrador» y vuelve aquí: desaparece del celular.</p></div></div></div>';
+    bindApp();
+  }
+  function refreshPhone(){var p=document.getElementById('phone');if(p){p.innerHTML=phoneHTML();bindApp()}}
+  function bindApp(){
+    var p=document.getElementById('phone');if(!p)return;
+    var q=document.getElementById('q');
+    if(q)q.addEventListener('input',function(){S.app.q=q.value;var pos=q.selectionStart;refreshPhone();var n=document.getElementById('q');n.focus();n.setSelectionRange(pos,pos)});
+    p.querySelectorAll('[data-a]').forEach(function(b){b.addEventListener('click',function(){
+      var a=b.getAttribute('data-a'),i=b.getAttribute('data-i');
+      if(a==='login'){S.app.screen='home';addLog('María Pérez inició sesión (prueba)')}
+      else if(a==='logout'){S.app={screen:'login',sec:null,file:null,q:''}}
+      else if(a==='sec'){S.app.sec=i;S.app.screen='section'}
+      else if(a==='file'){S.app.file=+i;S.app.screen='viewer';var s=C().sections.filter(function(x){return x.id===S.app.sec})[0];addLog('María Pérez abrió «'+s.files[+i].name+'»')}
+      else if(a==='back'){S.app.screen=S.app.screen==='viewer'?'section':'home'}
+      else if(a==='dl'){var s2=C().sections.filter(function(x){return x.id===S.app.sec})[0];addLog('María Pérez descargó «'+s2.files[S.app.file].name+'»');toast('Descarga registrada (demo)');return}
+      refreshPhone();
+    })});
+  }
+
+  /* ---------- Panel del administrador ---------- */
+  function renderAdmin(){
+    var cl=S.clients[S.cur],isMain=S.cur===0;
+    var vis=cl.sections.filter(function(s){return s.visible}).length;
+    var docs=cl.sections.reduce(function(a,s){return a+s.files.length},0);
+    var h='<div class="admin"><aside class="panel"><h3>Clientes</h3>'+S.clients.map(function(c,i){
+      return '<button class="client" data-c="'+i+'" aria-current="'+(i===S.cur)+'"><span class="av">'+c.short+'</span><span><b>'+esc(c.name)+'</b><span>'+(c.sections.length?c.sections.length+' secciones · '+c.users.length+' usuarios':'Sin carpetas')+'</span></span></button>'}).join('')+
+      '<button class="btn ghost small" style="margin-top:10px;width:100%" data-x="newclient">+ Nuevo cliente</button></aside>';
+    h+='<section class="panel"><div class="toolbar"><div><h2 style="margin:0;font:700 20px var(--f-display)">'+esc(cl.name)+'</h2><span class="fine">Panel del administrador</span></div></div>';
+    h+='<div class="kpis"><div class="kpi"><b>'+vis+'/'+cl.sections.length+'</b><span>secciones visibles</span></div><div class="kpi"><b>'+docs+'</b><span>documentos</span></div><div class="kpi"><b>'+cl.users.filter(function(u){return u.on}).length+'</b><span>usuarios con acceso</span></div></div>';
+    h+='<div class="subtabs" role="tablist">'+[['folders','Carpetas'],['users','Usuarios'],['log','Actividad']].map(function(t){return '<button role="tab" data-st="'+t[0]+'" aria-selected="'+(S.subtab===t[0])+'">'+t[1]+'</button>'}).join('')+'</div>';
+    if(S.subtab==='folders'){
+      h+='<div class="upload" id="drop"><div class="toolbar" style="margin:0"><div><b>Subir la carpeta de un cliente</b><div class="fine">Elige o arrastra la carpeta completa. Se crea el cliente, una sección por cada subcarpeta y todos sus documentos. En este prototipo los archivos no salen de tu computador.</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn small" for="folder" tabindex="0">Elegir carpeta</label><input id="folder" type="file" webkitdirectory multiple hidden><button class="btn ghost small" id="up">'+(S.uploaded?'Ejemplo cargado':'Probar con ejemplo')+'</button></div></div><div id="upstate"></div></div>';
+      if(!cl.sections.length)h+='<p class="empty-state">Este cliente todavía no tiene carpetas. Sube la primera para que el cliente la vea.</p>';
+      else h+='<div class="tblwrap"><table class="tbl"><thead><tr><th>N.º</th><th>Sección</th><th>Docs</th><th>Visible para el cliente</th></tr></thead><tbody>'+cl.sections.map(function(s){
+        return '<tr><td class="n">'+s.id+'</td><td>'+esc(s.name)+(s.files.some(function(f){return f.isNew})?'<span class="new">Nuevo</span>':'')+'</td><td class="n">'+s.files.length+'</td><td><button class="switch" role="switch" aria-checked="'+s.visible+'" aria-label="Mostrar '+esc(s.name)+' al cliente" data-sw="'+s.id+'"></button></td></tr>'}).join('')+'</tbody></table></div>';
+    } else if(S.subtab==='users'){
+      if(!cl.users.length)h+='<p class="empty-state">Invita al primer usuario de este cliente.</p>';
+      cl.users.forEach(function(u,i){var ini=u.name.split(' ').map(function(w){return w[0]}).join('').slice(0,2);
+        h+='<div class="userrow"><span class="av">'+esc(ini)+'</span><span class="t"><b>'+esc(u.name)+'</b><span>'+esc(u.email)+' · '+esc(u.role)+'</span></span><span class="pill '+(u.pending?'warn':(u.on?'':'off'))+'">'+(u.pending?'Invitación pendiente':(u.on?'Último acceso: '+esc(u.last):'Acceso revocado'))+'</span><button class="btn ghost small" data-u="'+i+'">'+(u.on?'Revocar':'Reactivar')+'</button></div>'});
+      h+='<form class="invite" id="inv"><input id="invem" type="email" placeholder="correo@cliente.ec" aria-label="Correo del usuario a invitar" required><button class="btn small" type="submit">Invitar usuario</button></form>';
+    } else {
+      h+='<ul class="log">'+S.log.map(function(l){return '<li><time>'+esc(l.t)+'</time><span>'+esc(l.x)+'</span></li>'}).join('')+'</ul>';
+    }
+    h+='</section></div>';
+    document.getElementById('main').innerHTML=h;
+    bindAdmin();
+  }
+  function bindAdmin(){
+    var m=document.getElementById('main');
+    m.querySelectorAll('[data-c]').forEach(function(b){b.addEventListener('click',function(){S.cur=+b.getAttribute('data-c');S.subtab='folders';S.app={screen:S.app.screen==='login'?'login':'home',sec:null,file:null,q:''};renderAdmin()})});
+    m.querySelectorAll('[data-st]').forEach(function(b){b.addEventListener('click',function(){S.subtab=b.getAttribute('data-st');renderAdmin()})});
+    m.querySelectorAll('[data-sw]').forEach(function(b){b.addEventListener('click',function(){
+      var s=C().sections.filter(function(x){return x.id===b.getAttribute('data-sw')})[0];s.visible=!s.visible;
+      addLog('Sección '+s.id+' '+(s.visible?'visible':'oculta')+' para el cliente');renderAdmin();toast(s.visible?'Ahora el cliente la ve':'Oculta para el cliente')})});
+    m.querySelectorAll('[data-u]').forEach(function(b){b.addEventListener('click',function(){
+      var u=S.clients[S.cur].users[+b.getAttribute('data-u')];u.on=!u.on;u.pending=false;addLog((u.on?'Acceso reactivado: ':'Acceso revocado: ')+u.name);renderAdmin()})});
+    var nc=m.querySelector('[data-x="newclient"]');
+    if(nc)nc.addEventListener('click',function(){S.clients.push({id:S.clients.length,short:'N',name:'Cliente nuevo '+(S.clients.length+1),sections:[],users:[]});S.cur=S.clients.length-1;renderAdmin();toast('Cliente creado (demo)')});
+    var inv=document.getElementById('inv');
+    if(inv)inv.addEventListener('submit',function(e){e.preventDefault();var v=document.getElementById('invem').value.trim();if(!v)return;
+      S.clients[S.cur].users.push({name:v.split('@')[0],email:v,role:'Usuario invitado',last:'',on:true,pending:true});addLog('Invitación enviada a '+v);renderAdmin();toast('Invitación creada (demo, no se envía correo)')});
+    bindFolder();
+    var up=document.getElementById('up');
+    if(up)up.addEventListener('click',function(){
+      if(S.uploaded){toast('En esta demo la carpeta de ejemplo se sube una vez');return}
+      if(S.cur!==0){toast('Este cliente es solo un ejemplo vacío');return}
+      up.disabled=true;
+      var st=document.getElementById('upstate');
+      var steps=['Leyendo 12 archivos','Convirtiendo documentos de Office a PDF','Aplicando permisos del cliente','Publicando en la app'];
+      st.innerHTML='<div class="pbar"><i id="pb"></i></div><ul class="steps">'+steps.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>';
+      var lis=st.querySelectorAll('li'),i=0;
+      (function next(){
+        document.getElementById('pb').style.width=((i+1)/steps.length*100)+'%';
+        lis[i].classList.add('done');i++;
+        if(i<steps.length)setTimeout(next,650);
+        else setTimeout(function(){
+          var s=C().sections.filter(function(x){return x.id==='15'})[0];
+          s.files.push({name:'Plan anual de auditorías 2026',type:'pdf',size:'0,4 MB',date:'22 oct 2026',isNew:true},{name:'Informe de auditoría interna',type:'docx',size:'1,2 MB',date:'22 oct 2026',isNew:true});
+          S.uploaded=true;addLog('Administrador subió 2 documentos a «15 Programa de auditorías»');renderAdmin();toast('Listo: ya aparecen en la app del cliente');
+        },500);
+      })();
+    });
+  }
+
+  /* ---------- Importar una carpeta real ---------- */
+  var ACR=['PDP','PATD','PANSI','RAT','MTGE','LOPDP','SPDP','EIPD','ATD','RTD','DTD','EET','GRC','COAC','ARCO','GDPR','CCPA','RGPD','LOPD'];
+  var MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var IGN=/^(~\$|\.ds_store$|thumbs\.db$|desktop\.ini$)/i;
+  function pretty(s){
+    if(/[a-záéíóúñ]/.test(s))return s;
+    var t=s.toLowerCase();t=t.charAt(0).toUpperCase()+t.slice(1);
+    return t.replace(/[^\s\-–()\/,.:]+/g,function(w){return ACR.indexOf(w.toUpperCase())>-1?w.toUpperCase():w});
+  }
+  function fdate(ms){var d=new Date(ms||Date.now());return d.getDate()+' '+MES[d.getMonth()]+' '+d.getFullYear()}
+  function fsize(b){return b>=1048576?(b/1048576).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(b/1024))+' KB'}
+  function buildClient(items){
+    var root=items[0].path.split('/')[0],secs={},order=[],stats={files:0,office:0};
+    items.forEach(function(it){
+      var parts=it.path.split('/').slice(1);
+      if(!parts.length)return;
+      var fname=parts[parts.length-1];
+      if(IGN.test(fname))return;
+      var secName=parts.length===1?'00 Documentos generales':parts[0];
+      var sub=parts.length>2?parts.slice(1,-1).join(' / '):'';
+      if(!secs[secName]){var m=secName.match(/^(\d+)[\s.\-_]+(.*)$/);secs[secName]={num:m?parseInt(m[1],10):0,name:pretty(m?m[2]:secName),files:[]};order.push(secName)}
+      var dot=fname.lastIndexOf('.'),ext=dot>0?fname.slice(dot+1).toLowerCase():'file',base=dot>0?fname.slice(0,dot):fname;
+      var f={name:pretty(base),type:ext,size:fsize(it.file.size),date:fdate(it.file.lastModified),sub:sub?pretty(sub):''};
+      if(/^(jpe?g|png|gif|webp)$/.test(ext)){try{f.url=URL.createObjectURL(it.file)}catch(e){}}
+      if(/^(docx?|xlsx?|pptx?)$/.test(ext))stats.office++;
+      secs[secName].files.push(f);stats.files++;
+    });
+    var used={},list=order.map(function(k){return secs[k]}).sort(function(a,b){return a.num-b.num||a.name.localeCompare(b.name)}).map(function(s){
+      var id=('0'+s.num).slice(-2),n=0,base=id;while(used[id]){n++;id=base+String.fromCharCode(96+n)}used[id]=1;
+      return {id:id,name:s.name,visible:true,files:s.files};
+    });
+    return {root:root,sections:list,stats:stats};
+  }
+  function readEntries(entry,path,out){
+    return new Promise(function(res){
+      if(entry.isFile){entry.file(function(f){out.push({path:path+entry.name,file:f});res()},function(){res()});return}
+      var rd=entry.createReader(),all=[];
+      (function loop(){rd.readEntries(function(es){
+        if(!es.length){Promise.all(all.map(function(e){return readEntries(e,path+entry.name+'/',out)})).then(function(){res()})}
+        else{all=all.concat(Array.prototype.slice.call(es));loop()}
+      },function(){res()})})();
+    });
+  }
+  function runImport(items){
+    if(!items.length){toast('La carpeta está vacía');return}
+    var built=buildClient(items);
+    if(!built.stats.files){toast('No encontré documentos en esa carpeta');return}
+    var st=document.getElementById('upstate');
+    var steps=['Leyendo '+built.stats.files+' archivos','Creando '+built.sections.length+' secciones a partir de las subcarpetas',built.stats.office?'Convirtiendo '+built.stats.office+' documentos de Office a PDF':'Revisando formatos','Aplicando permisos del cliente','Publicando en la app'];
+    st.innerHTML='<div class="pbar"><i id="pb"></i></div><ul class="steps">'+steps.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>';
+    var lis=st.querySelectorAll('li'),i=0;
+    (function next(){
+      document.getElementById('pb').style.width=((i+1)/steps.length*100)+'%';
+      lis[i].classList.add('done');i++;
+      if(i<steps.length)setTimeout(next,550);
+      else setTimeout(function(){
+        var name=pretty(built.root.replace(/^proyecto\s+/i,'')),idx=-1;
+        S.clients.forEach(function(c,k){if(c.name.toLowerCase().indexOf(name.toLowerCase())>-1)idx=k});
+        if(idx<0){S.clients.push({id:S.clients.length,short:name.split(/\s+/).map(function(w){return w.charAt(0)}).join('').slice(0,2).toUpperCase(),name:name,sections:[],users:[]});idx=S.clients.length-1}
+        S.clients[idx].sections=built.sections;
+        S.cur=idx;S.subtab='folders';S.app={screen:S.app.screen==='login'?'login':'home',sec:null,file:null,q:''};
+        addLog('Administrador subió la carpeta «'+built.root+'»: '+built.stats.files+' documentos en '+built.sections.length+' secciones');
+        renderAdmin();toast('Listo: '+built.sections.length+' secciones y '+built.stats.files+' documentos creados');
+      },450);
+    })();
+  }
+  function bindFolder(){
+    var inp=document.getElementById('folder'),drop=document.getElementById('drop');
+    if(!inp||!drop)return;
+    drop.querySelector('label').addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();inp.click()}});
+    inp.addEventListener('change',function(){
+      var fl=Array.prototype.slice.call(inp.files||[]);
+      if(!fl.length)return;
+      if(!fl[0].webkitRelativePath){toast('Este navegador no permite elegir carpetas. Usa un computador.');return}
+      var items=fl.map(function(f){return {path:f.webkitRelativePath,file:f}});
+      inp.value='';
+      runImport(items);
+    });
+    ['dragenter','dragover'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add('over')})});
+    drop.addEventListener('dragleave',function(){drop.classList.remove('over')});
+    drop.addEventListener('drop',function(e){
+      e.preventDefault();drop.classList.remove('over');
+      var its=e.dataTransfer&&e.dataTransfer.items,en=null;
+      if(its&&its.length){var x=its[0].webkitGetAsEntry&&its[0].webkitGetAsEntry();if(x&&x.isDirectory)en=x}
+      if(!en){toast('Arrastra una carpeta, no archivos sueltos');return}
+      var out=[];readEntries(en,'',out).then(function(){runImport(out)});
+    });
+  }
+
+  /* ---------- Propuesta ---------- */
+  function renderPlan(){
+    var li=function(a){return '<ul>'+a.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>'};
+    document.getElementById('main').innerHTML='<div class="prop">'+
+    '<section class="p-hero"><small>Propuesta</small><h2>Tus clientes, con su documentación PDP siempre a la mano</h2><p>Una app propia para iPhone y Android donde cada cliente entra con su correo y ve su carpeta completa de protección de datos, al día y bajo tu control.</p><div class="actions"><button class="btn" data-go="app">Ver la app del cliente</button><button class="btn ghost" data-go="admin">Ver tu panel</button></div></section>'+
+
+    '<section><h3 class="p-h">El cambio</h3><div class="cmp">'+
+      '<div class="card"><h3>Hoy</h3>'+li(['Las carpetas viajan por correo, WhatsApp o memoria USB.','El cliente puede quedarse con una versión vieja sin saberlo.','No sabes quién tiene qué documento ni si lo abrió.','Cada actualización hay que volver a enviarla.'])+'</div>'+
+      '<div class="card key"><h3>Con la app</h3>'+li(['Un solo lugar, con las 21 secciones de siempre.','Subes una vez y el cliente ve la versión vigente.','Decides qué sección ve cada cliente y puedes quitar el acceso cuando quieras.','Queda registro de quién abrió o descargó cada documento.'])+'</div></div></section>'+
+
+    '<section><h3 class="p-h">Qué ganas tú</h3><div class="cards">'+
+      '<div class="card"><h3>Imagen profesional</h3><p style="margin:0">Una app con tu marca en el celular de cada cliente. Se nota que tu servicio es serio y ordenado.</p></div>'+
+      '<div class="card"><h3>Control total</h3><p style="margin:0">Tú publicas, ocultas y revocas. Los documentos internos de tu metodología no se comparten sin que lo decidas.</p></div>'+
+      '<div class="card"><h3>Menos trabajo repetido</h3><p style="margin:0">Arrastras la carpeta del cliente y la app crea el cliente, las secciones y los documentos sola.</p></div>'+
+      '<div class="card"><h3>Evidencia de entrega</h3><p style="margin:0">Registro de accesos y descargas por usuario y fecha, útil para demostrar que el cliente recibió y consultó su documentación.</p></div>'+
+      '<div class="card"><h3>Un servicio que se puede cobrar</h3><p style="margin:0">El acceso a la plataforma puede ofrecerse como parte de tu servicio o como suscripción mensual a cada cliente.</p></div>'+
+    '</div></section>'+
+
+    '<section><h3 class="p-h">Cómo funciona</h3><ol class="flow">'+
+      '<li><b>Subes la carpeta</b><span>Desde la web, arrastras la carpeta del cliente. Los archivos de Word, Excel y PowerPoint se convierten a PDF para verse bien en el celular.</span></li>'+
+      '<li><b>Invitas a su equipo</b><span>Escribes los correos de las personas autorizadas. Cada una recibe su acceso.</span></li>'+
+      '<li><b>El cliente consulta</b><span>Abre la app, busca por sección y revisa o descarga sus documentos en cualquier momento.</span></li>'+
+    '</ol></section>'+
+
+    '<section><h3 class="p-h">Seguridad y cumplimiento</h3><div class="cards">'+
+      '<div class="card"><h3>Cada cliente, lo suyo</h3><p style="margin:0">Un cliente nunca ve la carpeta de otro. El permiso se controla desde el servidor, no solo en la pantalla.</p></div>'+
+      '<div class="card"><h3>Documentos protegidos</h3><p style="margin:0">Marca de agua con el correo de quien consulta y enlaces que caducan a los pocos minutos.</p></div>'+
+      '<div class="card"><h3>Pensada para la LOPDP</h3><p style="margin:0">Definimos contigo dónde se alojan los datos y cómo se documenta el tratamiento, de modo que la propia plataforma sea coherente con lo que recomiendas a tus clientes.</p></div>'+
+    '</div></section>'+
+
+    '<section><h3 class="p-h">Etapas</h3><div class="tblwrap"><table class="tbl"><thead><tr><th>Etapa</th><th>Qué se entrega</th><th>Tiempo estimado</th></tr></thead><tbody>'+
+      '<tr><td>1. Base</td><td>Clientes, usuarios y permisos por cliente</td><td class="n">1 semana</td></tr>'+
+      '<tr><td>2. Tu panel</td><td>Subir carpetas, crear secciones, invitar y revocar usuarios</td><td class="n">1 semana</td></tr>'+
+      '<tr><td>3. App del cliente</td><td>Ingreso, secciones, visor de documentos y descarga</td><td class="n">2 semanas</td></tr>'+
+      '<tr><td>4. Pruebas y publicación</td><td>Piloto con un cliente real y salida en iPhone y Android</td><td class="n">1 semana</td></tr>'+
+    '</tbody></table></div><p class="fine" style="margin-top:8px">Tiempos estimados; se ajustan juntos según la disponibilidad de ambos.</p></section>'+
+
+    '<section><h3 class="p-h">Después de la primera versión</h3>'+li(['Avisos al cliente cuando publiques un documento nuevo.','Alertas de vencimientos: capacitaciones, auditorías, revisiones.','Tablero de avance del cumplimiento por cliente.','Que el cliente pueda enviarte documentos desde la app.'])+'</section>'+
+
+    '<section><h3 class="p-h">Inversión de referencia</h3><div class="tblwrap"><table class="tbl"><thead><tr><th>Concepto</th><th>Valor</th></tr></thead><tbody>'+
+      '<tr><td>Cuenta de Apple Developer (para iPhone)</td><td class="n">99 USD al año</td></tr>'+
+      '<tr><td>Cuenta de Google Play (para Android)</td><td class="n">25 USD, una sola vez</td></tr>'+
+      '<tr><td>Servicio en la nube</td><td class="n">0 USD en pruebas; cerca de 25 USD al mes con clientes reales</td></tr>'+
+      '<tr><td><label for="dev">Desarrollo e implementación</label></td><td><input id="dev" class="devin" inputmode="numeric" placeholder="A acordar" aria-label="Valor del desarrollo en dólares"> USD</td></tr>'+
+      '<tr><td><b>Primer año (con nube de pago)</b></td><td class="n"><b id="tot">124 USD + desarrollo</b></td></tr>'+
+    '</tbody></table></div><p class="fine" style="margin-top:8px">Los valores de las plataformas son de referencia y deben confirmarse al momento de pagar. Escribe el valor del desarrollo para ver el total.</p></section>'+
+
+    '<section class="p-next"><h3 class="p-h">Para arrancar necesito de ti</h3>'+li(['El nombre y el logo de la plataforma.','Qué secciones ve cada tipo de cliente (cuáles quedan solo para ti).','Un cliente piloto para la primera prueba real.','Si abrimos las cuentas de las tiendas a tu nombre o al de tu empresa.'])+'</section>'+
+    '</div>';
+    document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){S.view=b.getAttribute('data-go');render();window.scrollTo(0,0)})});
+    var dev=document.getElementById('dev'),tot=document.getElementById('tot');
+    dev.addEventListener('input',function(){
+      var v=parseInt(dev.value.replace(/\D/g,''),10);
+      tot.textContent=isNaN(v)?'124 USD + desarrollo':(v+124+300).toLocaleString('es-EC')+' USD';
+    });
+  }
+
+  function render(){
+    document.querySelectorAll('.tabs button').forEach(function(b){b.setAttribute('aria-selected',b.getAttribute('data-view')===S.view)});
+    if(S.view==='app')renderApp();else if(S.view==='admin')renderAdmin();else renderPlan();
+  }
+  document.querySelectorAll('.tabs button').forEach(function(b){b.addEventListener('click',function(){S.view=b.getAttribute('data-view');render()})});
+  render();
+})();
+</script>
+</body>
+</html>

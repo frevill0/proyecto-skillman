@@ -1,0 +1,53 @@
+# Dependencias y builds
+node_modules/
+dist/
+build/
+web-build/
+.expo/
+.expo-shared/
+expo-env.d.ts
+*.tsbuildinfo
+.next/
+.turbo/
+
+# Expo / nativo
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Variables de entorno y secretos (nunca subir claves de Supabase)
+.env
+.env.*
+!.env.example
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Documentos reales de clientes: NUNCA al repositorio.
+# Guarda las carpetas reales fuera del repo o dentro de /datos-reales (ignorada).
+datos-reales/
+PROYECTO */
+*.docx
+*.doc
+*.xlsx
+*.xls
+*.pptx
+*.ppt
+*.pdf
+# Datos de ejemplo permitidos (sin información real):
+!ejemplos/**
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
+*.log
+.vscode/*
+!.vscode/extensions.json
