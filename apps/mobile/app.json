@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "Portal PDP",
-    "slug": "portal-pdp",
+    "slug": "proyecto-skillman",
+    "owner": "frevills-team",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -39,6 +40,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9fb7b7f9-adbf-4460-a8f6-d2f828e57070"
+      }
     }
   }
 }
