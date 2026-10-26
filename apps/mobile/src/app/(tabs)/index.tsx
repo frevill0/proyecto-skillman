@@ -1,39 +1,55 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { FlatList, StyleSheet, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ListRow, NumberBadge } from '@/components/list-row';
+import { EmptyText, ErrorState, Loading } from '@/components/states';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { ORGANIZATION } from '@/data/demo';
 import { useTheme } from '@/hooks/use-theme';
-import { useDemo } from '@/state/demo-store';
-
-function countLabel(n: number) {
-  if (!n) return 'Sin documentos aún';
-  return n === 1 ? '1 documento' : `${n} documentos`;
-}
+import { useClient, useClients, useSections } from '@/lib/queries';
+import { useSession } from '@/state/session';
+import { documentCount, sectionNumber } from '@/utils/format';
 
 export default function HomeScreen() {
   const theme = useTheme();
-  const { visibleSections } = useDemo();
+  const { clientId, isAdmin } = useSession();
+  const client = useClient(clientId);
+  const sections = useSections(clientId);
   const [query, setQuery] = useState('');
 
+  if (isAdmin && !clientId) return <AdminClientPicker />;
+  if (sections.isPending || client.isPending) return <Loading />;
+  if (sections.isError || client.isError) {
+    return (
+      <ErrorState
+        onRetry={() => {
+          client.refetch();
+          sections.refetch();
+        }}
+      />
+    );
+  }
+
   const q = query.trim().toLowerCase();
-  const list = visibleSections.filter((s) => !q || `${s.id} ${s.name}`.toLowerCase().includes(q));
-  const totalDocs = visibleSections.reduce((sum, s) => sum + s.documents.length, 0);
+  const all = sections.data;
+  const list = all.filter(
+    (s) => !q || `${sectionNumber(s.number)} ${s.name}`.toLowerCase().includes(q),
+  );
+  const totalDocs = all.reduce((sum, s) => sum + (s.documents[0]?.count ?? 0), 0);
 
   const header = (
     <View style={styles.header}>
+      {isAdmin && <AdminClientPicker compact />}
       <View style={[styles.hero, { backgroundColor: theme.brand }]}>
         <ThemedText type="label" style={[styles.heroLabel, { color: theme.brandInk }]}>
-          Tu organización
+          {isAdmin ? 'Vista del cliente' : 'Tu organización'}
         </ThemedText>
         <ThemedText type="title" style={{ color: theme.brandInk }}>
-          {ORGANIZATION}
+          {client.data.name}
         </ThemedText>
         <View style={styles.stats}>
-          <Stat value={visibleSections.length} label="secciones" color={theme.brandInk} />
+          <Stat value={all.length} label="secciones" color={theme.brandInk} />
           <Stat value={totalDocs} label="documentos" color={theme.brandInk} />
         </View>
       </View>
@@ -57,24 +73,76 @@ export default function HomeScreen() {
       keyExtractor={(s) => s.id}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
+      refreshControl={
+        <RefreshControl
+          refreshing={sections.isRefetching}
+          onRefresh={() => void sections.refetch()}
+          tintColor={theme.brand}
+          colors={[theme.brand]}
+        />
+      }
       ListHeaderComponent={header}
       ListEmptyComponent={
-        <ThemedText themeColor="textSecondary" style={styles.empty}>
-          {visibleSections.length
-            ? 'No hay secciones con ese nombre.'
-            : 'Esta organización aún no tiene carpetas publicadas.'}
-        </ThemedText>
+        <EmptyText>
+          {all.length ? 'No hay secciones con ese nombre.' : 'Esta organización aún no tiene carpetas publicadas.'}
+        </EmptyText>
       }
-      renderItem={({ item }) => (
-        <ListRow
-          leading={<NumberBadge value={item.id} />}
-          title={item.name}
-          subtitle={countLabel(item.documents.length)}
-          muted={!item.documents.length}
-          onPress={() => router.push({ pathname: '/seccion/[id]', params: { id: item.id } })}
-        />
-      )}
+      renderItem={({ item }) => {
+        const count = item.documents[0]?.count ?? 0;
+        return (
+          <ListRow
+            leading={<NumberBadge value={sectionNumber(item.number)} />}
+            title={item.name}
+            subtitle={documentCount(count)}
+            muted={!count}
+            onPress={() => router.push({ pathname: '/seccion/[id]', params: { id: item.id } })}
+          />
+        );
+      }}
     />
+  );
+}
+
+/** Para el administrador: elegir qué cliente ver como lo vería ese cliente. */
+function AdminClientPicker({ compact = false }: { compact?: boolean }) {
+  const theme = useTheme();
+  const { clientId, setAdminClientId } = useSession();
+  const clients = useClients();
+
+  // Por defecto, el primer cliente.
+  useEffect(() => {
+    if (!clientId && clients.data?.length) setAdminClientId(clients.data[0].id);
+  }, [clientId, clients.data, setAdminClientId]);
+
+  if (clients.isPending) return compact ? null : <Loading />;
+  if (clients.isError) return <ErrorState onRetry={() => clients.refetch()} />;
+  if (!clients.data.length) {
+    return <EmptyText>Aún no hay clientes. Importa la primera carpeta con el script del administrador.</EmptyText>;
+  }
+  if (!compact) return <Loading />;
+
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      {clients.data.map((c) => {
+        const selected = c.id === clientId;
+        return (
+          <Pressable
+            key={c.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            onPress={() => setAdminClientId(c.id)}
+            style={[
+              styles.chip,
+              { borderColor: selected ? theme.brand : theme.line },
+              selected && { backgroundColor: theme.brandSoft },
+            ]}>
+            <ThemedText type="small" themeColor={selected ? 'brand' : 'textSecondary'}>
+              {c.name}
+            </ThemedText>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
   );
 }
 
@@ -99,6 +167,7 @@ const styles = StyleSheet.create({
   header: {
     gap: Spacing.three,
     marginBottom: Spacing.two,
+    paddingTop: Spacing.two,
   },
   hero: {
     borderRadius: 18,
@@ -120,8 +189,13 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     fontSize: 16,
   },
-  empty: {
-    textAlign: 'center',
-    paddingVertical: Spacing.five,
+  chips: {
+    gap: Spacing.two,
+  },
+  chip: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
 });

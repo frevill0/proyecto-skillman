@@ -5,20 +5,24 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { ORGANIZATION } from '@/data/demo';
 import { useTheme } from '@/hooks/use-theme';
-import { useDemo } from '@/state/demo-store';
+import { useClient } from '@/lib/queries';
+import { useSession } from '@/state/session';
 
 export default function ProfileScreen() {
   const theme = useTheme();
-  const { user, signOut } = useDemo();
-  if (!user) return null;
+  const { profile, session, isAdmin, signOut } = useSession();
+  const client = useClient(isAdmin ? null : (profile?.client_id ?? null));
+  if (!profile) return null;
 
-  const initials = user.name
+  const name = profile.full_name || profile.email || '';
+  const email = profile.email ?? session?.user.email ?? '';
+  const initials = name
     .split(' ')
     .map((w) => w[0])
     .join('')
-    .slice(0, 2);
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -28,26 +32,41 @@ export default function ProfileScreen() {
             {initials}
           </ThemedText>
         </View>
-        <ThemedText type="title">{user.name}</ThemedText>
-        <ThemedText themeColor="textSecondary">{user.email}</ThemedText>
+        <ThemedText type="title">{name}</ThemedText>
+        <ThemedText themeColor="textSecondary">{email}</ThemedText>
       </View>
 
       <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
-        <InfoRow label="Organización" value={ORGANIZATION} />
-        <InfoRow label="Rol" value={user.role} />
+        <InfoRow label="Organización" value={isAdmin ? 'Todas (administrador)' : (client.data?.name ?? '…')} />
+        <InfoRow label="Rol" value={isAdmin ? 'Administrador' : 'Cliente'} />
       </View>
 
       <ThemedText type="small" themeColor="textSecondary">
-        Los documentos llevan una marca de agua con tu correo. Cada apertura y descarga queda
-        registrada.
+        Los documentos llevan marca de agua y los enlaces caducan a los pocos minutos. Cada apertura y
+        descarga queda registrada.
       </ThemedText>
+
+      {isAdmin && (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/admin')}
+          style={({ pressed }) => [
+            styles.button,
+            { backgroundColor: theme.brand, opacity: pressed ? 0.85 : 1 },
+          ]}>
+          <Ionicons name="settings-outline" size={18} color={theme.brandInk} />
+          <ThemedText type="smallBold" themeColor="brandInk">
+            Administración
+          </ThemedText>
+        </Pressable>
+      )}
 
       <Pressable
         accessibilityRole="button"
         onPress={signOut}
         style={({ pressed }) => [
           styles.button,
-          { borderColor: theme.line, opacity: pressed ? 0.7 : 1 },
+          { borderWidth: 1, borderColor: theme.line, opacity: pressed ? 0.7 : 1 },
         ]}>
         <Ionicons name="log-out-outline" size={18} color={theme.danger} />
         <ThemedText type="smallBold" themeColor="danger">
@@ -55,18 +74,8 @@ export default function ProfileScreen() {
         </ThemedText>
       </Pressable>
 
-      {/* Acceso discreto a la vista del consultor, solo para la demostración. */}
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push('/admin')}
-        style={({ pressed }) => [styles.adminLink, { opacity: pressed ? 0.6 : 1 }]}>
-        <ThemedText type="label" themeColor="textSecondary">
-          Vista de administrador (demo)
-        </ThemedText>
-      </Pressable>
-
       <ThemedText type="small" themeColor="textSecondary" style={styles.version}>
-        Portal PDP · versión {Constants.expoConfig?.version ?? '1.0.0'} · datos de ejemplo
+        Portal PDP · versión {Constants.expoConfig?.version ?? ''}
       </ThemedText>
     </ScrollView>
   );
@@ -114,16 +123,11 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
     borderRadius: 12,
     paddingVertical: 12,
   },
-  adminLink: {
-    alignSelf: 'center',
-    padding: Spacing.two,
-    marginTop: Spacing.four,
-  },
   version: {
     textAlign: 'center',
+    marginTop: Spacing.four,
   },
 });

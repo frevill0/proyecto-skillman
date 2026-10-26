@@ -33,6 +33,7 @@ supabase/.temp/
 # Guarda las carpetas reales fuera del repo o dentro de /datos-reales (ignorada).
 datos-reales/
 PROYECTO */
+/PROYECTO SKILLMAN/
 *.docx
 *.doc
 *.xlsx
@@ -42,6 +43,8 @@ PROYECTO */
 *.pdf
 # Datos de ejemplo permitidos (sin información real):
 !ejemplos/**
+# La carpeta de prueba generada se crea con `npm run ejemplo`; no hace falta versionarla.
+/ejemplos/PROYECTO DEMO PDP/
 
 # Sistema
 .DS_Store

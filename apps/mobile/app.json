@@ -35,13 +35,16 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "extra": {
+      "supabaseUrl": "https://cqpaufrgffznxlsrlcoh.supabase.co",
+      "supabasePublishableKey": "",
       "eas": {
         "projectId": "9fb7b7f9-adbf-4460-a8f6-d2f828e57070"
       }

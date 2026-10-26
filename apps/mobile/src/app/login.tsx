@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,15 +14,36 @@ import { BrandMark } from '@/components/brand-mark';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { DEMO_PASSWORD, DEMO_USER } from '@/data/demo';
 import { useTheme } from '@/hooks/use-theme';
-import { useDemo } from '@/state/demo-store';
+import { supabase } from '@/lib/supabase';
+
+function loginErrorMessage(message: string) {
+  if (/invalid login credentials/i.test(message)) return 'Correo o contraseña incorrectos.';
+  if (/network|fetch/i.test(message)) return 'Sin conexión. Revisa tu internet e inténtalo de nuevo.';
+  return 'No se pudo iniciar sesión. Inténtalo de nuevo.';
+}
 
 export default function LoginScreen() {
   const theme = useTheme();
-  const { signIn } = useDemo();
-  const [email, setEmail] = useState(DEMO_USER.email);
-  const [password, setPassword] = useState(DEMO_PASSWORD);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const signIn = async () => {
+    if (!email.trim() || !password) {
+      setError('Escribe tu correo y tu contraseña.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    setBusy(false);
+    if (authError) setError(loginErrorMessage(authError.message));
+  };
 
   const inputStyle = [
     styles.input,
@@ -48,6 +70,7 @@ export default function LoginScreen() {
               style={inputStyle}
               value={email}
               onChangeText={setEmail}
+              placeholder="correo@empresa.ec"
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -63,22 +86,35 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              autoComplete="current-password"
+              onSubmitEditing={signIn}
               placeholderTextColor={theme.textSecondary}
             />
           </View>
 
+          {error && (
+            <ThemedText type="small" themeColor="danger">
+              {error}
+            </ThemedText>
+          )}
+
           <Pressable
             accessibilityRole="button"
-            onPress={() => signIn(email)}
+            disabled={busy}
+            onPress={signIn}
             style={({ pressed }) => [
               styles.button,
-              { backgroundColor: theme.brand, opacity: pressed ? 0.85 : 1 },
+              { backgroundColor: theme.brand, opacity: pressed || busy ? 0.75 : 1 },
             ]}>
-            <ThemedText style={[styles.buttonText, { color: theme.brandInk }]}>Ingresar</ThemedText>
+            {busy ? (
+              <ActivityIndicator color={theme.brandInk} />
+            ) : (
+              <ThemedText style={[styles.buttonText, { color: theme.brandInk }]}>Ingresar</ThemedText>
+            )}
           </Pressable>
           <ThemedText type="small" themeColor="textSecondary">
-            Cada cliente ve únicamente sus propias carpetas. Versión de demostración con datos de
-            ejemplo.
+            Cada cliente ve únicamente las carpetas de su organización. Si no tienes acceso, pídeselo a
+            tu consultor.
           </ThemedText>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -120,6 +156,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: Spacing.two,
+    minHeight: 50,
+    justifyContent: 'center',
   },
   buttonText: {
     fontWeight: 600,

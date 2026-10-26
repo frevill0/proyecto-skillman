@@ -1,49 +1,59 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { FlatList, StyleSheet } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet } from 'react-native';
 
 import { FileTypeBadge } from '@/components/file-type-badge';
 import { ListRow } from '@/components/list-row';
-import { ThemedText } from '@/components/themed-text';
+import { EmptyText, ErrorState, Loading } from '@/components/states';
 import { Spacing } from '@/constants/theme';
-import { useDemo } from '@/state/demo-store';
+import { useTheme } from '@/hooks/use-theme';
+import { useDocuments, useSection } from '@/lib/queries';
+import { formatDate, formatSize, sectionNumber } from '@/utils/format';
 
 export default function SectionScreen() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { visibleSections } = useDemo();
-  const section = visibleSections.find((s) => s.id === id);
+  const section = useSection(id);
+  const documents = useDocuments(id);
 
-  if (!section) {
+  if (section.isPending || documents.isPending) return <Loading />;
+  if (section.isError || documents.isError) {
     return (
-      <ThemedText themeColor="textSecondary" style={styles.empty}>
-        Esta sección no está disponible.
-      </ThemedText>
+      <ErrorState
+        onRetry={() => {
+          section.refetch();
+          documents.refetch();
+        }}
+      />
     );
   }
+  if (!section.data) return <EmptyText>Esta sección no está disponible.</EmptyText>;
 
   return (
     <>
-      <Stack.Screen options={{ title: `${section.id} · ${section.name}` }} />
+      <Stack.Screen options={{ title: `${sectionNumber(section.data.number)} · ${section.data.name}` }} />
       <FlatList
-        data={section.documents}
-        keyExtractor={(_, index) => String(index)}
+        data={documents.data}
+        keyExtractor={(d) => d.id}
         contentContainerStyle={styles.content}
-        ListEmptyComponent={
-          <ThemedText themeColor="textSecondary" style={styles.empty}>
-            Aún no hay documentos en esta sección.{'\n'}Te avisaremos cuando se publique algo nuevo.
-          </ThemedText>
+        refreshControl={
+          <RefreshControl
+            refreshing={documents.isRefetching}
+            onRefresh={() => void documents.refetch()}
+            tintColor={theme.brand}
+            colors={[theme.brand]}
+          />
         }
-        renderItem={({ item, index }) => (
+        ListEmptyComponent={
+          <EmptyText>{'Aún no hay documentos en esta sección.\nTe avisaremos cuando se publique algo nuevo.'}</EmptyText>
+        }
+        renderItem={({ item }) => (
           <ListRow
-            leading={<FileTypeBadge type={item.type} />}
+            leading={<FileTypeBadge ext={item.storage_path_pdf ? 'pdf' : item.original_ext} />}
             title={item.name}
-            subtitle={`${item.size} · ${item.date}`}
-            badge={item.isNew ? 'Nuevo' : undefined}
-            onPress={() =>
-              router.push({
-                pathname: '/documento/[sec]/[doc]',
-                params: { sec: section.id, doc: String(index) },
-              })
-            }
+            subtitle={[formatSize(item.size_bytes), formatDate(item.doc_date), item.subfolder_label]
+              .filter(Boolean)
+              .join(' · ')}
+            onPress={() => router.push({ pathname: '/documento/[id]', params: { id: item.id } })}
           />
         )}
       />
@@ -55,10 +65,5 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.three,
     paddingBottom: Spacing.four,
-  },
-  empty: {
-    textAlign: 'center',
-    paddingVertical: Spacing.five,
-    paddingHorizontal: Spacing.three,
   },
 });

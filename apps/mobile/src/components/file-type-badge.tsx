@@ -2,23 +2,23 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import type { ThemeColor } from '@/constants/theme';
-import { TYPE_LABEL, type DocType } from '@/data/demo';
 import { useTheme } from '@/hooks/use-theme';
+import { typeLabel } from '@/utils/format';
 
-const TYPE_COLOR: Record<DocType, ThemeColor> = {
-  pdf: 'danger',
-  xlsx: 'ok',
-  docx: 'brand',
-  pptx: 'accent',
-  jpg: 'textSecondary',
+const LABEL_COLOR: Record<string, ThemeColor> = {
+  PDF: 'danger',
+  XLS: 'ok',
+  DOC: 'brand',
+  PPT: 'accent',
 };
 
-export function FileTypeBadge({ type }: { type: DocType }) {
+export function FileTypeBadge({ ext }: { ext: string }) {
   const theme = useTheme();
+  const label = typeLabel(ext);
   return (
     <View style={[styles.badge, { backgroundColor: theme.backgroundElement, borderColor: theme.line }]}>
-      <ThemedText type="code" themeColor={TYPE_COLOR[type]}>
-        {TYPE_LABEL[type]}
+      <ThemedText type="code" themeColor={LABEL_COLOR[label] ?? 'textSecondary'}>
+        {label}
       </ThemedText>
     </View>
   );

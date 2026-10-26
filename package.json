@@ -7,6 +7,15 @@
     "packages/*"
   ],
   "scripts": {
-    "mobile": "npm run start --workspace apps/mobile"
+    "mobile": "npm run start --workspace apps/mobile",
+    "db:push": "supabase db push",
+    "ejemplo": "node scripts/generar-ejemplo.mjs",
+    "importar": "node --env-file=.env scripts/importar-carpeta.mjs",
+    "usuario": "node --env-file=.env scripts/crear-usuario.mjs"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "pdf-lib": "^1.17.1",
+    "supabase": "^2.122.0"
   }
 }
