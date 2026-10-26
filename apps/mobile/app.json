@@ -44,7 +44,7 @@
     },
     "extra": {
       "supabaseUrl": "https://cqpaufrgffznxlsrlcoh.supabase.co",
-      "supabasePublishableKey": "",
+      "supabasePublishableKey": "sb_publishable_FSolOcUNTCoAp0XXSOdL1g_ofndZdng",
       "eas": {
         "projectId": "9fb7b7f9-adbf-4460-a8f6-d2f828e57070"
       }
