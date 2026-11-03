@@ -25,6 +25,12 @@ export async function renameClient(id: string, name: string) {
   check(error, 'No pude renombrar el cliente');
 }
 
+/** Último día con acceso para los usuarios del cliente; null quita el vencimiento. */
+export async function setAccessUntil(id: string, date: string | null) {
+  const { error } = await supabase.from('clients').update({ access_until: date }).eq('id', id);
+  check(error, 'No pude guardar el vencimiento');
+}
+
 /** Borra el cliente con todas sus secciones, documentos y archivos. Exige que ya no tenga usuarios. */
 export async function deleteClient(id: string) {
   const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('client_id', id);

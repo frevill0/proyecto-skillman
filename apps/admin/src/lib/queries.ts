@@ -25,7 +25,7 @@ export function useClients() {
       unwrap<ClientSummary[]>(
         await supabase
           .from('clients')
-          .select('id, name, created_at, sections(count), documents(count), profiles(count)')
+          .select('id, name, created_at, access_until, sections(count), documents(count), profiles(count)')
           .order('name'),
       ),
   });
@@ -35,7 +35,9 @@ export function useClient(id: string) {
   return useQuery({
     queryKey: keys.client(id),
     queryFn: async () =>
-      unwrap<Client | null>(await supabase.from('clients').select('id, name, created_at').eq('id', id).maybeSingle()),
+      unwrap<Client | null>(
+        await supabase.from('clients').select('id, name, created_at, access_until').eq('id', id).maybeSingle(),
+      ),
   });
 }
 

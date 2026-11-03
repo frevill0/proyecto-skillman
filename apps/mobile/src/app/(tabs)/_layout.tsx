@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useSession } from '@/state/session';
+import { formatDate } from '@/utils/format';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -19,10 +20,11 @@ function tabIcon(active: IconName, inactive: IconName) {
 
 export default function TabLayout() {
   const theme = useTheme();
-  const { profile, profileLoading } = useSession();
+  const { profile, profileLoading, access } = useSession();
 
   if (profileLoading) return <Loading />;
   if (!profile?.active) return <NoAccess />;
+  if (access?.expired) return <NoAccess expired />;
 
   const firstName = profile.full_name?.split(' ')[0];
 
@@ -53,16 +55,18 @@ export default function TabLayout() {
   );
 }
 
-/** El usuario existe en Auth pero no tiene perfil activo (revocado o sin asignar). */
-function NoAccess() {
+/** Sin acceso: perfil revocado o sin asignar, o la suscripción de su organización venció. */
+function NoAccess({ expired = false }: { expired?: boolean }) {
   const theme = useTheme();
-  const { signOut } = useSession();
+  const { signOut, access } = useSession();
   return (
     <View style={[styles.center, { backgroundColor: theme.background }]}>
-      <Ionicons name="lock-closed-outline" size={40} color={theme.textSecondary} />
-      <ThemedText type="smallBold">Tu acceso no está activo</ThemedText>
+      <Ionicons name={expired ? 'time-outline' : 'lock-closed-outline'} size={40} color={theme.textSecondary} />
+      <ThemedText type="smallBold">{expired ? 'El acceso de tu organización venció' : 'Tu acceso no está activo'}</ThemedText>
       <ThemedText themeColor="textSecondary" style={styles.text}>
-        Pídele a tu consultor que revise tu usuario.
+        {expired && access?.access_until
+          ? `El acceso de ${access.client_name} estuvo vigente hasta el ${formatDate(access.access_until)}. Pídele a tu consultor que lo renueve.`
+          : 'Pídele a tu consultor que revise tu usuario.'}
       </ThemedText>
       <Pressable
         accessibilityRole="button"

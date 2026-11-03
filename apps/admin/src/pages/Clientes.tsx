@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router';
 
 import { Dialog, ErrorBox, Loading } from '@/components/ui';
 import { createClient } from '@/lib/api';
-import { initials, plural } from '@/lib/format';
+import { accessStatus, initials, plural } from '@/lib/format';
 import { keys, useClients } from '@/lib/queries';
 import { errorMessage } from '@/state/toast';
 
@@ -46,6 +46,7 @@ export function ClientsPage() {
             const sections = c.sections[0]?.count ?? 0;
             const docs = c.documents[0]?.count ?? 0;
             const users = c.profiles[0]?.count ?? 0;
+            const access = accessStatus(c.access_until);
             return (
               <Link key={c.id} to={`/clientes/${c.id}`} className="client-card">
                 <span className="av">{initials(c.name)}</span>
@@ -56,6 +57,7 @@ export function ClientsPage() {
                     {' · '}
                     {plural(users, 'usuario', 'usuarios')}
                   </span>
+                  {c.access_until && <span className={`pill ${access.kind} access-pill`}>{access.label}</span>}
                 </span>
               </Link>
             );

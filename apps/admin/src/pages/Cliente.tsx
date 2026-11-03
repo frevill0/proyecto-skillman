@@ -12,12 +12,13 @@ import {
   openDocument,
   pool,
   renameClient,
+  setAccessUntil,
   setAllSectionsVisible,
   setSectionVisible,
   storeDocument,
   updateSection,
 } from '@/lib/api';
-import { formatDate, formatSize, needsPdf, plural, sectionNumber } from '@/lib/format';
+import { accessStatus, addMonths, formatDate, formatSize, needsPdf, plural, sectionNumber, todayEcuador } from '@/lib/format';
 import { keys, useClient, useDocuments, useProfiles, useSections } from '@/lib/queries';
 import type { Client, DocumentRow, Section } from '@/lib/types';
 import { errorMessage, useToast } from '@/state/toast';
@@ -63,6 +64,7 @@ export function ClientPage() {
   const pending = documents.data.filter(needsPdf).length;
   const users = (profiles.data ?? []).filter((p) => p.client_id === id);
   const activeUsers = users.filter((u) => u.active).length;
+  const access = accessStatus(client.data.access_until);
 
   return (
     <>
@@ -90,6 +92,13 @@ export function ClientPage() {
           <b>{activeUsers}</b>
           <span>usuarios con acceso</span>
         </div>
+        <button
+          type="button"
+          className={`kpi kpi-button ${access.kind === 'warn' || access.kind === 'danger' ? 'warn' : ''}`}
+          onClick={() => setTab('ajustes')}>
+          <b>{access.kind === 'danger' ? 'Vencido' : client.data.access_until ? formatDate(client.data.access_until) : '—'}</b>
+          <span>{access.kind === 'danger' ? 'renuévalo en Ajustes' : access.label}</span>
+        </button>
         {pending > 0 && (
           <div className="kpi warn">
             <b>{pending}</b>
@@ -453,6 +462,72 @@ function SectionDialog({
 // ---------------------------------------------------------------------------
 // Ajustes
 // ---------------------------------------------------------------------------
+
+/** Vencimiento del acceso: al pasar la fecha, el servidor deja de mostrar la carpeta a sus usuarios. */
+function AccessEditor({ client }: { client: Client }) {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [date, setDate] = useState(client.access_until ?? '');
+  const status = accessStatus(client.access_until);
+  // Renovar suma desde el vencimiento actual si sigue vigente; si no, desde hoy.
+  const today = todayEcuador();
+  const base = client.access_until && client.access_until >= today ? client.access_until : today;
+
+  async function save(next: string | null) {
+    try {
+      await setAccessUntil(client.id, next);
+      setDate(next ?? '');
+      await queryClient.invalidateQueries({ queryKey: keys.client(client.id) });
+      await queryClient.invalidateQueries({ queryKey: keys.clients });
+      toast(next ? `Acceso hasta el ${formatDate(next)}` : 'Acceso sin vencimiento');
+    } catch (e) {
+      toast(errorMessage(e), 'error');
+    }
+  }
+
+  return (
+    <div className="form">
+      <div className="field">
+        <label htmlFor="access-until">Acceso de sus usuarios hasta (incluido)</label>
+        <div className="row-actions">
+          <input
+            id="access-until"
+            className="input"
+            type="date"
+            style={{ width: 'auto' }}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+          <button className="btn small" disabled={!date || date === client.access_until} onClick={() => save(date)}>
+            Guardar
+          </button>
+          <span className={`pill ${status.kind}`}>{status.label}</span>
+        </div>
+      </div>
+      <div className="row-actions">
+        <span className="fine">Renovar:</span>
+        <button className="btn ghost small" onClick={() => save(addMonths(base, 1))}>
+          +1 mes
+        </button>
+        <button className="btn ghost small" onClick={() => save(addMonths(base, 3))}>
+          +3 meses
+        </button>
+        <button className="btn ghost small" onClick={() => save(addMonths(base, 12))}>
+          +1 año
+        </button>
+        {client.access_until && (
+          <button className="btn ghost small" onClick={() => save(null)}>
+            Quitar vencimiento
+          </button>
+        )}
+      </div>
+      <p className="fine" style={{ margin: 0 }}>
+        Al vencer, sus usuarios siguen pudiendo entrar a la app pero solo ven el aviso «El acceso de tu organización
+        venció». Siete días antes la app les avisa. Nada se borra: al renovar vuelven a ver todo.
+      </p>
+    </div>
+  );
+}
 function Settings({ client, hasUsers }: { client: Client; hasUsers: boolean }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -499,6 +574,8 @@ function Settings({ client, hasUsers }: { client: Client; hasUsers: boolean }) {
           </button>
         </div>
       </form>
+
+      <AccessEditor client={client} />
 
       <div className="notice info">
         <b>Actualizar toda la carpeta.</b> Para reemplazar el contenido con una versión nueva de la carpeta, usa{' '}

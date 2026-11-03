@@ -9,6 +9,13 @@ export type Profile = {
   active: boolean;
 };
 
+/** Estado del acceso del cliente del usuario (función my_access del servidor). */
+export type Access = {
+  client_name: string;
+  access_until: string | null;
+  expired: boolean;
+};
+
 export type Client = {
   id: string;
   name: string;

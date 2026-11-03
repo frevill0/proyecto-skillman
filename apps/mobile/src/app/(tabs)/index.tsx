@@ -9,11 +9,11 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useClient, useClients, useSections } from '@/lib/queries';
 import { useSession } from '@/state/session';
-import { documentCount, sectionNumber } from '@/utils/format';
+import { daysUntil, documentCount, formatDate, sectionNumber } from '@/utils/format';
 
 export default function HomeScreen() {
   const theme = useTheme();
-  const { clientId, isAdmin } = useSession();
+  const { clientId, isAdmin, access } = useSession();
   const client = useClient(clientId);
   const sections = useSections(clientId);
   const [query, setQuery] = useState('');
@@ -37,10 +37,21 @@ export default function HomeScreen() {
     (s) => !q || `${sectionNumber(s.number)} ${s.name}`.toLowerCase().includes(q),
   );
   const totalDocs = all.reduce((sum, s) => sum + (s.documents[0]?.count ?? 0), 0);
+  const daysLeft = access?.access_until ? daysUntil(access.access_until) : null;
 
   const header = (
     <View style={styles.header}>
       {isAdmin && <AdminClientPicker compact />}
+      {daysLeft !== null && daysLeft >= 0 && daysLeft <= 7 && (
+        <View style={[styles.notice, { backgroundColor: theme.accentSoft }]}>
+          <ThemedText type="small" style={{ color: theme.accent }}>
+            {daysLeft === 0
+              ? 'Tu acceso vence hoy.'
+              : `Tu acceso vence en ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} (${formatDate(access!.access_until)}).`}{' '}
+            Consulta con tu consultor para renovarlo.
+          </ThemedText>
+        </View>
+      )}
       <View style={[styles.hero, { backgroundColor: theme.brand }]}>
         <ThemedText type="label" style={[styles.heroLabel, { color: theme.brandInk }]}>
           {isAdmin ? 'Vista del cliente' : 'Tu organización'}
@@ -173,6 +184,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: Spacing.three,
     gap: Spacing.one,
+  },
+  notice: {
+    borderRadius: 12,
+    padding: Spacing.three,
   },
   heroLabel: {
     opacity: 0.8,

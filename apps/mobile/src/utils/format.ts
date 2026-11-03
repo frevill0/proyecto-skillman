@@ -21,6 +21,14 @@ export function formatDateTime(iso: string) {
   return `${d.getDate()} ${MONTHS[d.getMonth()]}, ${hh}:${mm}`;
 }
 
+/** Días desde hoy hasta la fecha "AAAA-MM-DD" (0 = hoy, negativo = ya pasó). */
+export function daysUntil(iso: string) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((Date.UTC(y, m - 1, d) - today) / 86_400_000);
+}
+
 export function sectionNumber(n: number) {
   return String(n).padStart(2, '0');
 }

@@ -8,7 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { supabase } from '@/lib/supabase';
-import type { Profile } from '@/lib/types';
+import type { Access, Profile } from '@/lib/types';
 
 type SessionState = {
   /** true mientras se recupera la sesión guardada al abrir la app. */
@@ -17,6 +17,8 @@ type SessionState = {
   profile: Profile | null;
   profileLoading: boolean;
   isAdmin: boolean;
+  /** Vencimiento del cliente del usuario; null para administradores. */
+  access: Access | null;
   /** La contraseña es temporal (creada o restablecida por el consultor): hay que cambiarla antes de seguir. */
   mustChangePassword: boolean;
   clientId: string | null;
@@ -55,12 +57,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const profile = profileQuery.data ?? null;
   const isAdmin = profile?.role === 'admin' && profile.active;
 
+  // El cliente no puede leer su propia fila cuando vence (RLS); esta función le dice por qué.
+  const accessQuery = useQuery({
+    queryKey: ['access', userId],
+    enabled: !!userId && profile?.role === 'client_user',
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('my_access');
+      if (error) throw error;
+      return ((data as Access[] | null) ?? [])[0] ?? null;
+    },
+  });
+
   const value: SessionState = {
     restoring,
     session,
     profile,
-    profileLoading: !!userId && profileQuery.isPending,
+    profileLoading: !!userId && (profileQuery.isPending || (profile?.role === 'client_user' && accessQuery.isPending)),
     isAdmin,
+    access: accessQuery.data ?? null,
     mustChangePassword: session?.user.user_metadata?.must_change_password === true,
     clientId: isAdmin ? adminClientId : (profile?.client_id ?? null),
     setAdminClientId,

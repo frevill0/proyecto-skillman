@@ -5,6 +5,8 @@ export interface Client {
   id: string;
   name: string;
   created_at: string;
+  /** Último día con acceso (incluido). Null = sin vencimiento. */
+  access_until: string | null;
 }
 
 export interface ClientSummary extends Client {
