@@ -6,6 +6,9 @@
 // POST { action: 'eliminar', user_id }                          → { ok: true }
 //
 // Activar o revocar el acceso no pasa por aquí: el panel cambia profiles.active (RLS lo permite al admin).
+//
+// Toda contraseña que sale de aquí es temporal: se marca must_change_password en user_metadata
+// y la app obliga a cambiarla en el siguiente ingreso.
 
 import { corsHeaders, json, requireAdmin, serviceClient } from '../_shared/admin.ts';
 
@@ -32,16 +35,17 @@ Deno.serve(async (req) => {
     const fullName = body.full_name?.trim() || email.split('@')[0];
 
     const password = temporaryPassword();
+    const user_metadata = { full_name: fullName, must_change_password: true };
     let userId = await findUserId(supabase, email);
     if (userId) {
-      const { error } = await supabase.auth.admin.updateUserById(userId, { password });
+      const { error } = await supabase.auth.admin.updateUserById(userId, { password, user_metadata });
       if (error) return json({ error: error.message }, 400);
     } else {
       const { data, error } = await supabase.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
-        user_metadata: { full_name: fullName },
+        user_metadata,
       });
       if (error) return json({ error: error.message }, 400);
       userId = data.user.id;
@@ -60,8 +64,13 @@ Deno.serve(async (req) => {
   }
 
   if (body.action === 'restablecer') {
+    const { data: current, error: getError } = await supabase.auth.admin.getUserById(body.user_id);
+    if (getError) return json({ error: getError.message }, 400);
     const password = temporaryPassword();
-    const { error } = await supabase.auth.admin.updateUserById(body.user_id, { password });
+    const { error } = await supabase.auth.admin.updateUserById(body.user_id, {
+      password,
+      user_metadata: { ...current.user.user_metadata, must_change_password: true },
+    });
     if (error) return json({ error: error.message }, 400);
     return json({ password });
   }

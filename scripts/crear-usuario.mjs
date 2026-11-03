@@ -37,17 +37,19 @@ if (!isAdmin) {
   clientId = match[0].id;
 }
 
+// La contraseña es temporal: la app obliga a cambiarla en el primer ingreso.
 const password = temporaryPassword();
+const user_metadata = { full_name: fullName, must_change_password: true };
 let userId = await findUserId(email);
 if (userId) {
-  const { error } = await supabase.auth.admin.updateUserById(userId, { password });
+  const { error } = await supabase.auth.admin.updateUserById(userId, { password, user_metadata });
   if (error) fail(error);
 } else {
   const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: fullName },
+    user_metadata,
   });
   if (error) fail(error);
   userId = data.user.id;

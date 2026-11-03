@@ -63,6 +63,17 @@ export default function ProfileScreen() {
 
       <Pressable
         accessibilityRole="button"
+        onPress={() => router.push('/cambiar-contrasena')}
+        style={({ pressed }) => [
+          styles.button,
+          { borderWidth: 1, borderColor: theme.line, opacity: pressed ? 0.7 : 1 },
+        ]}>
+        <Ionicons name="key-outline" size={18} color={theme.text} />
+        <ThemedText type="smallBold">Cambiar contraseña</ThemedText>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
         onPress={signOut}
         style={({ pressed }) => [
           styles.button,

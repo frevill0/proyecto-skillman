@@ -28,7 +28,7 @@ function navigationTheme(scheme: 'light' | 'dark'): Theme {
 }
 
 function RootStack() {
-  const { restoring, session } = useSession();
+  const { restoring, session, mustChangePassword } = useSession();
   if (restoring) return null;
 
   return (
@@ -37,10 +37,17 @@ function RootStack() {
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={!!session}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="seccion/[id]" options={{ title: '' }} />
-        <Stack.Screen name="documento/[id]" options={{ title: '' }} />
-        <Stack.Screen name="admin" options={{ title: 'Administración' }} />
+        {/* Con contraseña temporal solo queda disponible esta pantalla. */}
+        <Stack.Protected guard={!mustChangePassword}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="seccion/[id]" options={{ title: '' }} />
+          <Stack.Screen name="documento/[id]" options={{ title: '' }} />
+          <Stack.Screen name="admin" options={{ title: 'Administración' }} />
+        </Stack.Protected>
+        <Stack.Screen
+          name="cambiar-contrasena"
+          options={{ title: 'Cambiar contraseña', headerShown: !mustChangePassword }}
+        />
       </Stack.Protected>
     </Stack>
   );

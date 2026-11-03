@@ -17,6 +17,8 @@ type SessionState = {
   profile: Profile | null;
   profileLoading: boolean;
   isAdmin: boolean;
+  /** La contraseña es temporal (creada o restablecida por el consultor): hay que cambiarla antes de seguir. */
+  mustChangePassword: boolean;
   clientId: string | null;
   setAdminClientId: (id: string) => void;
   signOut: () => Promise<void>;
@@ -59,6 +61,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     profile,
     profileLoading: !!userId && profileQuery.isPending,
     isAdmin,
+    mustChangePassword: session?.user.user_metadata?.must_change_password === true,
     clientId: isAdmin ? adminClientId : (profile?.client_id ?? null),
     setAdminClientId,
     signOut: async () => {

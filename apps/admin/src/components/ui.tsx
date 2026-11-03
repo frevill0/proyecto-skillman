@@ -118,7 +118,10 @@ export function Credentials({ email, password }: { email: string; password: stri
   const text = `Portal PDP\nCorreo: ${email}\nContraseña: ${password}`;
   return (
     <div className="credentials">
-      <p className="fine">Entrégalos por un canal privado. La contraseña no se vuelve a mostrar.</p>
+      <p className="fine">
+        Entrégalos por un canal privado. La contraseña es temporal: la app le pedirá crear una propia al entrar. No se
+        vuelve a mostrar.
+      </p>
       <dl>
         <dt>Correo</dt>
         <dd>{email}</dd>

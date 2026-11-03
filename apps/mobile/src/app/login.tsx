@@ -113,8 +113,8 @@ export default function LoginScreen() {
             )}
           </Pressable>
           <ThemedText type="small" themeColor="textSecondary">
-            Cada cliente ve únicamente las carpetas de su organización. Si no tienes acceso, pídeselo a
-            tu consultor.
+            Cada cliente ve únicamente las carpetas de su organización. Si no tienes acceso u olvidaste
+            tu contraseña, pídele a tu consultor una temporal.
           </ThemedText>
         </KeyboardAvoidingView>
       </SafeAreaView>
