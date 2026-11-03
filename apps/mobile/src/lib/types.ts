@@ -7,6 +7,7 @@ export type Profile = {
   role: Role;
   client_id: string | null;
   active: boolean;
+  created_at: string;
 };
 
 /** Estado del acceso del cliente del usuario (función my_access del servidor). */

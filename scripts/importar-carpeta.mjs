@@ -105,6 +105,8 @@ if (dryRun) {
 // ---------------------------------------------------------------------------
 // 2. Crear o reemplazar el cliente
 // ---------------------------------------------------------------------------
+const docKey = (section, name, size) => `${section.toLowerCase()}|${name.toLowerCase()}|${size}`;
+const previous = new Map(); // docKey → created_at de la importación anterior
 const clientId = await upsertClient(clientName);
 
 // ---------------------------------------------------------------------------
@@ -157,6 +159,7 @@ for (const [index, section] of ordered.entries()) {
       size_bytes: stat.size,
       doc_date: stat.mtime.toISOString().slice(0, 10),
       subfolder_label: file.subfolder,
+      created_at: previous.get(docKey(section.name, pretty(base), stat.size)),
     });
     if (docError) fail('No pude registrar el documento', fileName, docError);
     console.log(pdfPath && ext !== 'pdf' ? '✓ (convertido a PDF)' : '✓');
@@ -186,6 +189,13 @@ async function upsertClient(name) {
   }
 
   console.log(`Ya existe «${existing.name}»: se reemplaza su contenido.\n`);
+  // Los documentos que no cambian conservan su fecha de publicación (la app no los marca como nuevos).
+  const { data: docs, error: docsError } = await supabase
+    .from('documents')
+    .select('name, size_bytes, created_at, sections(name)')
+    .eq('client_id', existing.id);
+  if (docsError) fail('No pude leer los documentos actuales', existing.name, docsError);
+  for (const d of docs) previous.set(docKey(d.sections?.name ?? '', d.name, d.size_bytes), d.created_at);
   await removeFolder(existing.id);
   const { error: delError } = await supabase.from('sections').delete().eq('client_id', existing.id);
   if (delError) fail('No pude borrar las secciones anteriores', existing.name, delError);

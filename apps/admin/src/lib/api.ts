@@ -138,6 +138,8 @@ export interface StoreInput {
   sectionId: string;
   file: File;
   subfolder?: string | null;
+  /** Fecha de publicación a conservar (reimportación de un documento que ya existía). */
+  createdAt?: string;
 }
 
 export interface StoreResult {
@@ -149,7 +151,14 @@ export interface StoreResult {
  * Sube un archivo como documento: guarda el original, genera el PDF con marca de agua
  * (directo si ya es PDF, convertido si es Office) y registra la fila.
  */
-export async function storeDocument({ clientId, clientName, sectionId, file, subfolder }: StoreInput): Promise<StoreResult> {
+export async function storeDocument({
+  clientId,
+  clientName,
+  sectionId,
+  file,
+  subfolder,
+  createdAt,
+}: StoreInput): Promise<StoreResult> {
   const { base, ext } = splitExtension(file.name);
   const id = crypto.randomUUID();
   const prefix = `${clientId}/${id}`;
@@ -182,6 +191,7 @@ export async function storeDocument({ clientId, clientName, sectionId, file, sub
     size_bytes: file.size,
     doc_date: new Date(file.lastModified || Date.now()).toISOString().slice(0, 10),
     subfolder_label: subfolder ?? null,
+    ...(createdAt ? { created_at: createdAt } : {}),
   });
   check(error, `No pude registrar ${file.name}`);
   return { warning };

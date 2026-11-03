@@ -6,14 +6,17 @@ import { ListRow } from '@/components/list-row';
 import { EmptyText, ErrorState, Loading } from '@/components/states';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useDocuments, useSection } from '@/lib/queries';
+import { useDocuments, useNewDocuments, useSection } from '@/lib/queries';
+import { useSession } from '@/state/session';
 import { formatDate, formatSize, sectionNumber } from '@/utils/format';
 
 export default function SectionScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { clientId, session, profile } = useSession();
   const section = useSection(id);
   const documents = useDocuments(id);
+  const fresh = useNewDocuments(clientId, session?.user.id, profile?.created_at);
 
   if (section.isPending || documents.isPending) return <Loading />;
   if (section.isError || documents.isError) {
@@ -50,6 +53,7 @@ export default function SectionScreen() {
           <ListRow
             leading={<FileTypeBadge ext={item.storage_path_pdf ? 'pdf' : item.original_ext} />}
             title={item.name}
+            badge={fresh.data?.ids.has(item.id) ? 'NUEVO' : undefined}
             subtitle={[formatSize(item.size_bytes), formatDate(item.doc_date), item.subfolder_label]
               .filter(Boolean)
               .join(' · ')}

@@ -116,6 +116,46 @@ export function useDocumentSearch(clientId: string | null, text: string) {
   });
 }
 
+const NEW_DAYS = 30;
+
+/**
+ * Documentos nuevos para el usuario: publicados después de que se creó su cuenta, en los últimos
+ * 30 días, y que todavía no abrió ni descargó. RLS ya deja fuera las secciones ocultas.
+ */
+export function useNewDocuments(clientId: string | null, userId: string | undefined, accountCreatedAt: string | undefined) {
+  return useQuery({
+    queryKey: ['new-docs', clientId, userId],
+    enabled: !!clientId && !!userId && !!accountCreatedAt,
+    queryFn: async () => {
+      const windowStart = new Date(Date.now() - NEW_DAYS * 86_400_000).toISOString();
+      const since = accountCreatedAt! > windowStart ? accountCreatedAt! : windowStart;
+      const { data: docs, error } = await supabase
+        .from('documents')
+        .select('id, section_id')
+        .eq('client_id', clientId!)
+        .gt('created_at', since);
+      if (error) throw error;
+
+      const ids = new Set(docs.map((d) => d.id as string));
+      if (ids.size) {
+        const { data: seen, error: logError } = await supabase
+          .from('access_log')
+          .select('document_id')
+          .eq('user_id', userId!)
+          .in('document_id', [...ids]);
+        if (logError) throw logError;
+        for (const row of seen) ids.delete(row.document_id as string);
+      }
+
+      const bySection = new Map<string, number>();
+      for (const d of docs) {
+        if (ids.has(d.id)) bySection.set(d.section_id, (bySection.get(d.section_id) ?? 0) + 1);
+      }
+      return { ids, bySection };
+    },
+  });
+}
+
 export function useActivity(enabled: boolean) {
   return useQuery({
     queryKey: ['activity'],

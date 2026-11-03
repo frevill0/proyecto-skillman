@@ -7,15 +7,16 @@ import { EmptyText, ErrorState, Loading } from '@/components/states';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useClient, useClients, useSections } from '@/lib/queries';
+import { useClient, useClients, useNewDocuments, useSections } from '@/lib/queries';
 import { useSession } from '@/state/session';
 import { daysUntil, documentCount, formatDate, sectionNumber } from '@/utils/format';
 
 export default function HomeScreen() {
   const theme = useTheme();
-  const { clientId, isAdmin, access } = useSession();
+  const { clientId, isAdmin, access, session, profile } = useSession();
   const client = useClient(clientId);
   const sections = useSections(clientId);
+  const fresh = useNewDocuments(clientId, session?.user.id, profile?.created_at);
   const [query, setQuery] = useState('');
 
   if (isAdmin && !clientId) return <AdminClientPicker />;
@@ -38,6 +39,8 @@ export default function HomeScreen() {
   );
   const totalDocs = all.reduce((sum, s) => sum + (s.documents[0]?.count ?? 0), 0);
   const daysLeft = access?.access_until ? daysUntil(access.access_until) : null;
+  const newCount = fresh.data?.ids.size ?? 0;
+  const newCountFor = (sectionId: string) => fresh.data?.bySection.get(sectionId) ?? 0;
 
   const header = (
     <View style={styles.header}>
@@ -62,6 +65,7 @@ export default function HomeScreen() {
         <View style={styles.stats}>
           <Stat value={all.length} label="secciones" color={theme.brandInk} />
           <Stat value={totalDocs} label="documentos" color={theme.brandInk} />
+          {newCount > 0 && <Stat value={newCount} label={newCount === 1 ? 'nuevo' : 'nuevos'} color={theme.brandInk} />}
         </View>
       </View>
       <TextInput
@@ -87,7 +91,10 @@ export default function HomeScreen() {
       refreshControl={
         <RefreshControl
           refreshing={sections.isRefetching}
-          onRefresh={() => void sections.refetch()}
+          onRefresh={() => {
+            void sections.refetch();
+            void fresh.refetch();
+          }}
           tintColor={theme.brand}
           colors={[theme.brand]}
         />
@@ -100,11 +107,13 @@ export default function HomeScreen() {
       }
       renderItem={({ item }) => {
         const count = item.documents[0]?.count ?? 0;
+        const unseen = newCountFor(item.id);
         return (
           <ListRow
             leading={<NumberBadge value={sectionNumber(item.number)} />}
             title={item.name}
             subtitle={documentCount(count)}
+            badge={unseen ? (unseen === 1 ? '1 NUEVO' : `${unseen} NUEVOS`) : undefined}
             muted={!count}
             onPress={() => router.push({ pathname: '/seccion/[id]', params: { id: item.id } })}
           />

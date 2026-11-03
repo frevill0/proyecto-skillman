@@ -122,8 +122,10 @@ export async function runImport({ plan, existingClientId, hidden, onProgress }: 
   onProgress({ ...progress });
 
   let clientId: string;
+  let previous = new Map<string, string>();
   if (existingClientId) {
     clientId = existingClientId;
+    previous = await publishedDates(clientId);
     progress.current = 'Borrando el contenido anterior…';
     onProgress({ ...progress });
     await clearClient(clientId);
@@ -155,6 +157,7 @@ export async function runImport({ plan, existingClientId, hidden, onProgress }: 
             sectionId: data.id,
             file: f.file,
             subfolder: f.subfolder,
+            createdAt: previous.get(docKey(section.name, f.name, f.file.size)),
           });
           if (warning) progress.warnings.push(`${f.file.name}: ${warning}`);
         } catch (e) {
@@ -169,6 +172,22 @@ export async function runImport({ plan, existingClientId, hidden, onProgress }: 
   progress.current = 'Listo';
   onProgress({ ...progress, warnings: [...progress.warnings] });
   return clientId;
+}
+
+const docKey = (section: string, name: string, size: number) => `${section.toLowerCase()}|${name.toLowerCase()}|${size}`;
+
+/**
+ * Fechas de publicación de los documentos actuales del cliente. Al reimportar, los que no cambiaron
+ * (misma sección, nombre y tamaño) conservan su fecha y la app no los vuelve a marcar como nuevos.
+ */
+async function publishedDates(clientId: string) {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('name, size_bytes, created_at, sections(name)')
+    .eq('client_id', clientId);
+  if (error) throw new Error(`No pude leer los documentos actuales: ${error.message}`);
+  const rows = data as unknown as { name: string; size_bytes: number; created_at: string; sections: { name: string } | null }[];
+  return new Map(rows.map((d) => [docKey(d.sections?.name ?? '', d.name, d.size_bytes), d.created_at]));
 }
 
 // ---------------------------------------------------------------------------

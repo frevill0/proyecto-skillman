@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -20,6 +20,7 @@ import { downloadDocument, requestFile, servedFile, viewDocument } from '@/utils
 export default function DocumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const document = useDocument(id);
   const [busy, setBusy] = useState<'view' | 'download' | null>(null);
 
@@ -36,6 +37,8 @@ export default function DocumentScreen() {
     try {
       if (kind === 'view') await viewDocument(doc);
       else await downloadDocument(doc);
+      // Ya lo abrió: deja de contar como nuevo.
+      void queryClient.invalidateQueries({ queryKey: ['new-docs'] });
     } catch {
       notify('No se pudo abrir el documento. Revisa tu conexión.');
     } finally {
@@ -94,10 +97,15 @@ export default function DocumentScreen() {
 function ImagePreview({ doc }: { doc: DocumentRow }) {
   const theme = useTheme();
   const { session } = useSession();
+  const queryClient = useQueryClient();
   const url = useQuery({
     queryKey: ['signed-url', doc.id],
     staleTime: (SIGNED_URL_SECONDS - 30) * 1000,
-    queryFn: async () => (await requestFile(doc, 'open')).url,
+    queryFn: async () => {
+      const { url: signed } = await requestFile(doc, 'open');
+      void queryClient.invalidateQueries({ queryKey: ['new-docs'] });
+      return signed;
+    },
   });
 
   return (
