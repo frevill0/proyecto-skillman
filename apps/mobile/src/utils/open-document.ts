@@ -4,7 +4,7 @@ import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
-import { BUCKET, SIGNED_URL_SECONDS, supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import type { DocumentRow } from '@/lib/types';
 
 const MIME: Record<string, string> = {
@@ -26,24 +26,21 @@ export function servedFile(doc: DocumentRow) {
   return { path: doc.storage_path_original, ext: doc.original_ext };
 }
 
-export async function signedUrl(doc: DocumentRow) {
-  const { path } = servedFile(doc);
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_SECONDS);
-  if (error) throw error;
-  return data.signedUrl;
-}
-
-export async function logAccess(doc: DocumentRow, action: 'open' | 'download') {
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return;
-  // Si el registro falla no se bloquea al usuario.
-  await supabase.from('access_log').insert({ user_id: data.user.id, document_id: doc.id, action });
+/**
+ * Pide el archivo al servidor. La función abrir-documento comprueba el permiso, estampa el correo
+ * del usuario en el PDF, registra la acción y devuelve un enlace que caduca en 5 minutos.
+ */
+export async function requestFile(doc: DocumentRow, action: 'open' | 'download') {
+  const { data, error } = await supabase.functions.invoke<{ url: string; ext: string }>('abrir-documento', {
+    body: { document_id: doc.id, action },
+  });
+  if (error || !data) throw error ?? new Error('Sin respuesta del servidor');
+  return data;
 }
 
 /** Descarga a la caché del celular con un nombre legible. */
-async function downloadToCache(doc: DocumentRow) {
-  const { ext } = servedFile(doc);
-  const url = await signedUrl(doc);
+async function downloadToCache(doc: DocumentRow, action: 'open' | 'download') {
+  const { url, ext } = await requestFile(doc, action);
   const safeName = doc.name.replace(/[\\/:*?"<>|]/g, '-').slice(0, 80);
   const target = new File(Paths.cache, `${safeName}.${ext}`);
   const file = await File.downloadFileAsync(url, target, { idempotent: true });
@@ -52,9 +49,8 @@ async function downloadToCache(doc: DocumentRow) {
 
 /** Abre el documento en el visor del celular. */
 export async function viewDocument(doc: DocumentRow) {
-  await logAccess(doc, 'open');
   if (Platform.OS === 'android') {
-    const { file, mime } = await downloadToCache(doc);
+    const { file, mime } = await downloadToCache(doc, 'open');
     try {
       await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
         data: file.contentUri,
@@ -67,16 +63,17 @@ export async function viewDocument(doc: DocumentRow) {
     }
     return;
   }
-  await WebBrowser.openBrowserAsync(await signedUrl(doc));
+  const { url } = await requestFile(doc, 'open');
+  await WebBrowser.openBrowserAsync(url);
 }
 
 /** Descarga: abre el menú del sistema para guardar o compartir el archivo. */
 export async function downloadDocument(doc: DocumentRow) {
-  await logAccess(doc, 'download');
   if (Platform.OS === 'web') {
-    await WebBrowser.openBrowserAsync(await signedUrl(doc));
+    const { url } = await requestFile(doc, 'download');
+    await WebBrowser.openBrowserAsync(url);
     return;
   }
-  const { file, mime } = await downloadToCache(doc);
+  const { file, mime } = await downloadToCache(doc, 'download');
   await Sharing.shareAsync(file.uri, { mimeType: mime, dialogTitle: doc.name });
 }

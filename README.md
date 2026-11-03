@@ -9,9 +9,13 @@ App para iPhone y Android donde cada cliente de un consultor de protección de d
 ```
 apps/
   mobile/     App del cliente (Expo / React Native, iOS y Android)
-  admin/      Panel web del administrador (etapa 2)
-packages/     Código compartido (tipos, cliente de Supabase)
-supabase/     Migraciones, políticas RLS y funciones (etapa 1)
+  admin/      Panel web del administrador (Vite + React)
+packages/
+  core/       Reglas de importación de carpetas y marca de agua (scripts y panel)
+supabase/     Migraciones, políticas RLS y funciones del servidor (usuarios, convertir)
+infra/
+  conversion/ Servicio Office → PDF (Gotenberg en Google Cloud Run)
+scripts/      Importar carpetas y crear usuarios desde la terminal
 prototipo/    Prototipo HTML de referencia (datos de ejemplo)
 ```
 
@@ -25,7 +29,9 @@ prototipo/    Prototipo HTML de referencia (datos de ejemplo)
 
 ```bash
 npm install
-npm run mobile
+npm run mobile             # app del cliente
+npm run admin              # panel web → http://localhost:5173
+npm run functions:deploy   # publicar las funciones del servidor en Supabase
 ```
 
 ## Importante

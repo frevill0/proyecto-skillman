@@ -1,0 +1,18 @@
+{
+  "name": "@portal-pdp/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reglas de importación de carpetas y marca de agua, compartidas por los scripts y el panel web.",
+  "type": "module",
+  "main": "index.mjs",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}

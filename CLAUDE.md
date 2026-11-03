@@ -13,8 +13,9 @@ App para iPhone y Android donde cada cliente de un consultor de protección de d
 Monorepo con npm workspaces, en https://github.com/frevill0/proyecto-skillman (rama `main`).
 - `apps/mobile/` app del cliente (Expo).
 - `apps/admin/` panel web del administrador.
-- `packages/` código compartido (tipos, cliente de Supabase).
-- `supabase/` migraciones, RLS y funciones.
+- `packages/core/` reglas de importación y marca de agua, compartidas por `scripts/` y el panel.
+- `supabase/` migraciones, RLS y funciones del servidor (`usuarios`, `convertir`; validan rol admin por dentro).
+- `infra/conversion/` despliegue de Gotenberg (LibreOffice) en Google Cloud Run para Office → PDF.
 - `prototipo/portal-pdp.html` prototipo de referencia.
 
 ## Alcance del MVP (decidido)

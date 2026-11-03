@@ -15,7 +15,7 @@ import type { DocumentRow } from '@/lib/types';
 import { useSession } from '@/state/session';
 import { formatDate, formatSize, IMAGE_EXTENSIONS, OFFICE_EXTENSIONS, sectionNumber } from '@/utils/format';
 import { notify } from '@/utils/notify';
-import { downloadDocument, logAccess, servedFile, signedUrl, viewDocument } from '@/utils/open-document';
+import { downloadDocument, requestFile, servedFile, viewDocument } from '@/utils/open-document';
 
 export default function DocumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -83,8 +83,8 @@ export default function DocumentScreen() {
       </View>
 
       <ThemedText type="small" themeColor="textSecondary">
-        Uso confidencial. El enlace caduca a los {SIGNED_URL_SECONDS / 60} minutos y cada apertura queda
-        registrada.
+        Uso confidencial. Cada copia lleva tu correo, el enlace caduca a los {SIGNED_URL_SECONDS / 60} minutos y
+        cada apertura queda registrada.
       </ThemedText>
     </ScrollView>
   );
@@ -97,10 +97,7 @@ function ImagePreview({ doc }: { doc: DocumentRow }) {
   const url = useQuery({
     queryKey: ['signed-url', doc.id],
     staleTime: (SIGNED_URL_SECONDS - 30) * 1000,
-    queryFn: async () => {
-      await logAccess(doc, 'open');
-      return signedUrl(doc);
-    },
+    queryFn: async () => (await requestFile(doc, 'open')).url,
   });
 
   return (
