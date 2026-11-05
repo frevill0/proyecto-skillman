@@ -37,7 +37,10 @@ export function UsersTable({ clientId }: { clientId?: string }) {
   if (profiles.isPending) return <Loading />;
   if (profiles.isError) return <ErrorBox error={profiles.error} onRetry={() => profiles.refetch()} />;
 
-  const list = clientId ? profiles.data.filter((p) => p.client_id === clientId) : profiles.data;
+  // En la lista general no aparecen los usuarios de clientes archivados.
+  const list = clientId
+    ? profiles.data.filter((p) => p.client_id === clientId)
+    : profiles.data.filter((p) => !p.clients?.archived);
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: keys.profiles }),
@@ -222,7 +225,7 @@ function NewUserDialog({
               <option value="" disabled>
                 Elige un cliente
               </option>
-              {clients.data?.map((c) => (
+              {clients.data?.filter((c) => !c.archived || c.id === clientId).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>

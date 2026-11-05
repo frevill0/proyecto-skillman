@@ -7,6 +7,8 @@ export interface Client {
   created_at: string;
   /** Último día con acceso (incluido). Null = sin vencimiento. */
   access_until: string | null;
+  /** Oculto de las listas del panel (no cambia el acceso de sus usuarios). */
+  archived: boolean;
 }
 
 export interface ClientSummary extends Client {
@@ -46,7 +48,7 @@ export interface Profile {
   role: Role;
   active: boolean;
   created_at: string;
-  clients: { name: string } | null;
+  clients: { name: string; archived: boolean } | null;
 }
 
 export interface ActivityEntry {
@@ -54,5 +56,5 @@ export interface ActivityEntry {
   action: 'open' | 'download';
   at: string;
   profiles: { full_name: string | null; email: string | null } | null;
-  documents: { name: string; clients: { name: string } | null } | null;
+  documents: { name: string; clients: { name: string; archived: boolean } | null } | null;
 }

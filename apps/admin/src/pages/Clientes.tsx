@@ -11,6 +11,9 @@ import { errorMessage } from '@/state/toast';
 export function ClientsPage() {
   const clients = useClients();
   const [creating, setCreating] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const archivedCount = clients.data?.filter((c) => c.archived).length ?? 0;
+  const list = clients.data?.filter((c) => c.archived === showArchived) ?? [];
 
   return (
     <>
@@ -33,7 +36,7 @@ export function ClientsPage() {
         <Loading />
       ) : clients.isError ? (
         <ErrorBox error={clients.error} onRetry={() => clients.refetch()} />
-      ) : !clients.data.length ? (
+      ) : !list.length && !showArchived ? (
         <div className="panel empty-state">
           <p>Aún no hay clientes. Importa la carpeta del primero y se crea solo.</p>
           <Link className="btn" to="/importar">
@@ -42,7 +45,7 @@ export function ClientsPage() {
         </div>
       ) : (
         <div className="clients">
-          {clients.data.map((c) => {
+          {list.map((c) => {
             const sections = c.sections[0]?.count ?? 0;
             const docs = c.documents[0]?.count ?? 0;
             const users = c.profiles[0]?.count ?? 0;
@@ -63,6 +66,14 @@ export function ClientsPage() {
             );
           })}
         </div>
+      )}
+
+      {(archivedCount > 0 || showArchived) && (
+        <p style={{ marginTop: 16 }}>
+          <button className="btn ghost small" onClick={() => setShowArchived(!showArchived)}>
+            {showArchived ? '← Volver a los clientes activos' : `Ver archivados (${archivedCount})`}
+          </button>
+        </p>
       )}
 
       {creating && <NewClientDialog onClose={() => setCreating(false)} />}

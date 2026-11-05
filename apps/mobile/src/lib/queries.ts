@@ -17,7 +17,8 @@ export function useClients(enabled = true) {
     queryKey: ['clients'],
     enabled,
     queryFn: async () => {
-      const { data, error } = await supabase.from('clients').select('id, name').order('name');
+      // Los clientes archivados no aparecen en la vista de administrador.
+      const { data, error } = await supabase.from('clients').select('id, name').eq('archived', false).order('name');
       if (error) throw error;
       return data as Client[];
     },
@@ -163,7 +164,8 @@ export function useActivity(enabled: boolean) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('access_log')
-        .select('id, action, at, profiles(full_name, email), documents(name)')
+        .select('id, action, at, profiles(full_name, email), documents!inner(name, clients!inner(archived))')
+        .eq('documents.clients.archived', false)
         .order('at', { ascending: false })
         .limit(100);
       if (error) throw error;

@@ -33,7 +33,7 @@
         {
           "backgroundColor": "#0E5A4F",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 120
         }
       ],
       "expo-sharing",

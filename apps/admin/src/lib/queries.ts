@@ -25,7 +25,7 @@ export function useClients() {
       unwrap<ClientSummary[]>(
         await supabase
           .from('clients')
-          .select('id, name, created_at, access_until, sections(count), documents(count), profiles(count)')
+          .select('id, name, created_at, access_until, archived, sections(count), documents(count), profiles(count)')
           .order('name'),
       ),
   });
@@ -36,7 +36,7 @@ export function useClient(id: string) {
     queryKey: keys.client(id),
     queryFn: async () =>
       unwrap<Client | null>(
-        await supabase.from('clients').select('id, name, created_at, access_until').eq('id', id).maybeSingle(),
+        await supabase.from('clients').select('id, name, created_at, access_until, archived').eq('id', id).maybeSingle(),
       ),
   });
 }
@@ -74,7 +74,7 @@ export function useProfiles() {
       unwrap<Profile[]>(
         await supabase
           .from('profiles')
-          .select('id, client_id, full_name, email, role, active, created_at, clients(name)')
+          .select('id, client_id, full_name, email, role, active, created_at, clients(name, archived)')
           .order('role')
           .order('email'),
       ),
@@ -89,8 +89,8 @@ export function useActivity(clientId?: string) {
         .from('access_log')
         .select(
           clientId
-            ? 'id, action, at, profiles(full_name, email), documents!inner(name, client_id, clients(name))'
-            : 'id, action, at, profiles(full_name, email), documents(name, clients(name))',
+            ? 'id, action, at, profiles(full_name, email), documents!inner(name, client_id, clients(name, archived))'
+            : 'id, action, at, profiles(full_name, email), documents(name, clients(name, archived))',
         )
         .order('at', { ascending: false })
         .limit(300);

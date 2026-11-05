@@ -25,6 +25,12 @@ export async function renameClient(id: string, name: string) {
   check(error, 'No pude renombrar el cliente');
 }
 
+/** Archivar oculta al cliente de las listas; no borra nada ni cambia el acceso de sus usuarios. */
+export async function setArchived(id: string, archived: boolean) {
+  const { error } = await supabase.from('clients').update({ archived }).eq('id', id);
+  check(error, archived ? 'No pude archivar el cliente' : 'No pude restaurar el cliente');
+}
+
 /** Último día con acceso para los usuarios del cliente; null quita el vencimiento. */
 export async function setAccessUntil(id: string, date: string | null) {
   const { error } = await supabase.from('clients').update({ access_until: date }).eq('id', id);

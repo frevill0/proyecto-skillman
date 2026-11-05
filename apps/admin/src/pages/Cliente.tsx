@@ -13,6 +13,7 @@ import {
   pool,
   renameClient,
   setAccessUntil,
+  setArchived,
   setAllSectionsVisible,
   setSectionVisible,
   storeDocument,
@@ -75,6 +76,7 @@ export function ClientPage() {
           </Link>
           <h1>{client.data.name}</h1>
         </div>
+        {client.data.archived && <span className="pill off">Archivado</span>}
       </div>
 
       <div className="kpis">
@@ -576,6 +578,31 @@ function Settings({ client, hasUsers }: { client: Client; hasUsers: boolean }) {
       </form>
 
       <AccessEditor client={client} />
+
+      <div className="notice info">
+        <b>{client.archived ? 'Cliente archivado.' : 'Archivar cliente.'}</b>{' '}
+        {client.archived
+          ? 'No aparece en las listas del panel ni en la vista de administrador de la app.'
+          : 'Lo oculta de las listas del panel y de la vista de administrador de la app (por ejemplo, durante una presentación). No borra nada ni cambia el acceso de sus usuarios.'}
+        <div style={{ marginTop: 10 }}>
+          <button
+            className="btn ghost small"
+            onClick={async () => {
+              try {
+                await setArchived(client.id, !client.archived);
+                await queryClient.invalidateQueries({ queryKey: keys.client(client.id) });
+                await queryClient.invalidateQueries({ queryKey: keys.clients });
+                await queryClient.invalidateQueries({ queryKey: keys.profiles });
+                toast(client.archived ? `«${client.name}» vuelve a las listas` : `«${client.name}» archivado`);
+                if (!client.archived) navigate('/');
+              } catch (err) {
+                toast(errorMessage(err), 'error');
+              }
+            }}>
+            {client.archived ? 'Restaurar' : 'Archivar'}
+          </button>
+        </div>
+      </div>
 
       <div className="notice info">
         <b>Actualizar toda la carpeta.</b> Para reemplazar el contenido con una versión nueva de la carpeta, usa{' '}
