@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Navigate, NavLink, Outlet, Route, Routes } from 'react-router';
 
 import { BrandMark, Loading } from './components/ui';
 import { ActivityPage } from './pages/Actividad';
 import { ClientPage } from './pages/Cliente';
 import { ClientsPage } from './pages/Clientes';
+import { ForcedPasswordPage, PasswordDialog } from './pages/Contrasena';
 import { ImportPage } from './pages/Importar';
 import { LoginPage } from './pages/Login';
 import { UsersPage } from './pages/Usuarios';
@@ -13,6 +15,7 @@ export function App() {
   const { restoring, session } = useSession();
   if (restoring) return <Loading />;
   if (!session) return <LoginPage />;
+  if (session.user.user_metadata?.must_change_password === true) return <ForcedPasswordPage />;
 
   return (
     <Routes>
@@ -30,6 +33,7 @@ export function App() {
 
 function Layout() {
   const { session, signOut } = useSession();
+  const [changingPassword, setChangingPassword] = useState(false);
   return (
     <div className="shell">
       <header className="top">
@@ -49,6 +53,9 @@ function Layout() {
         </nav>
         <div className="who">
           <span>{session?.user.email}</span>
+          <button className="btn ghost small" onClick={() => setChangingPassword(true)}>
+            Mi contraseña
+          </button>
           <button className="btn ghost small" onClick={() => void signOut()}>
             Salir
           </button>
@@ -57,6 +64,7 @@ function Layout() {
       <main>
         <Outlet />
       </main>
+      {changingPassword && <PasswordDialog onClose={() => setChangingPassword(false)} />}
     </div>
   );
 }

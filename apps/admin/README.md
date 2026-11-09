@@ -6,6 +6,10 @@ Vite + React. Usa el mismo Supabase que la app móvil y solo admite cuentas con 
 npm run admin        # desde la raíz → http://localhost:5173
 ```
 
+## Publicación (Vercel)
+
+Proyecto importado desde GitHub con **Root Directory** `apps/admin`; el resto de la configuración está en `vercel.json`. Cada push a `main` publica una versión nueva. No necesita variables de entorno: el panel solo usa la clave publicable.
+
 ## Qué hace
 
 - **Clientes:** lista, crear, renombrar y eliminar.

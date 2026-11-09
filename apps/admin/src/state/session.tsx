@@ -47,7 +47,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
     const { data } = supabase.auth.onAuthStateChange((event, next) => {
       if (event === 'SIGNED_OUT') setSession(null);
-      else if (event === 'TOKEN_REFRESHED') setSession(next);
+      else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') setSession(next);
     });
     return () => data.subscription.unsubscribe();
   }, [accept]);
