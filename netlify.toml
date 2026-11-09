@@ -1,0 +1,24 @@
+# Publicación del panel web (apps/admin) en Netlify. La app móvil no se instala ni se publica aquí.
+
+[build]
+  command = "npm run build --workspace apps/admin"
+  publish = "apps/admin/dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # Instala solo el panel y su paquete compartido: el resto del monorepo (Expo) no hace falta.
+  NPM_FLAGS = "--workspace apps/admin --workspace packages/core"
+
+# El panel es de una sola página: las rutas internas las resuelve React.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"

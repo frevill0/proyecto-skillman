@@ -6,9 +6,9 @@ Vite + React. Usa el mismo Supabase que la app móvil y solo admite cuentas con 
 npm run admin        # desde la raíz → http://localhost:5173
 ```
 
-## Publicación (Vercel)
+## Publicación (Netlify)
 
-Proyecto importado desde GitHub con **Root Directory** `apps/admin`; el resto de la configuración está en `vercel.json`. Cada push a `main` publica una versión nueva. No necesita variables de entorno: el panel solo usa la clave publicable.
+Sitio importado desde GitHub; toda la configuración está en `netlify.toml`, en la raíz del repositorio. Cada push a `main` publica una versión nueva. No necesita variables de entorno propias: el panel solo usa la clave publicable.
 
 ## Qué hace
 
