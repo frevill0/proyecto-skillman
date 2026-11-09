@@ -18,10 +18,12 @@ Deno.serve(async (req) => {
   const admin = await requireAdmin(req, serviceClient());
   if (admin instanceof Response) return admin;
 
+  // Leer el cuerpo antes de cualquier respuesta: si no, la conexión se cuelga hasta el límite de 150 s.
+  const form = await req.formData().catch(() => null);
+
   const url = Deno.env.get('GOTENBERG_URL');
   if (!url) return json({ error: 'El servicio de conversión aún no está configurado.' }, 503);
 
-  const form = await req.formData().catch(() => null);
   const file = form?.get('file');
   if (!(file instanceof File) || !OFFICE.test(file.name)) {
     return json({ error: 'Envía un archivo de Word, Excel o PowerPoint en el campo "file".' }, 400);

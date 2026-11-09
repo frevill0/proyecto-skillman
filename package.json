@@ -13,6 +13,7 @@
     "functions:deploy": "supabase functions deploy abrir-documento convertir usuarios",
     "ejemplo": "node scripts/generar-ejemplo.mjs",
     "importar": "node --env-file=.env scripts/importar-carpeta.mjs",
+    "convertir": "node --env-file=.env scripts/convertir-pendientes.mjs",
     "usuario": "node --env-file=.env scripts/crear-usuario.mjs"
   },
   "devDependencies": {

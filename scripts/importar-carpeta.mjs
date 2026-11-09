@@ -27,6 +27,7 @@ import {
   stamp,
 } from '@portal-pdp/core';
 
+import { findLibreOffice } from './lib/libreoffice.mjs';
 import { adminClient, BUCKET } from './lib/supabase-admin.mjs';
 
 const args = process.argv.slice(2);
@@ -221,16 +222,6 @@ async function removeFolder(prefix) {
 async function upload(path, bytes, contentType) {
   const { error } = await supabase.storage.from(BUCKET).upload(path, bytes, { contentType, upsert: true });
   if (error) fail('No pude subir', path, error);
-}
-
-function findLibreOffice() {
-  const candidates = [
-    'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
-    'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
-    '/Applications/LibreOffice.app/Contents/MacOS/soffice',
-    '/usr/bin/soffice',
-  ];
-  return candidates.find((p) => existsSync(p)) ?? null;
 }
 
 function convertToPdf(file) {
